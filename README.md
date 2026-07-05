@@ -2,14 +2,39 @@
 
 可在车机与电脑上打开的多场景氛围网页，采用 Stitch 设计的 Aetheris 视觉语言。
 
-## 使用
+## 部署到 GitHub Pages（公网访问）
+
+### 1. 在 GitHub 创建仓库
+
+1. 打开 [github.com/new](https://github.com/new)
+2. 仓库名填 `my-first-app`（或你喜欢的名字）
+3. 选 **Public**，**不要**勾选 "Add a README"
+4. 点击 **Create repository**
+
+### 2. 推送本地代码
+
+把下面命令里的 `你的用户名` 换成你的 GitHub 用户名：
 
 ```bash
-cd my-first-app
-python3 -m http.server 8080
+cd ~/Desktop/my-first-app
+git remote add origin https://github.com/你的用户名/my-first-app.git
+git push -u origin main
 ```
 
-访问 http://localhost:8080
+### 3. 开启 GitHub Pages
+
+1. 进入仓库 → **Settings** → 左侧 **Pages**
+2. **Source** 选 **Deploy from a branch**
+3. **Branch** 选 `main`，文件夹选 `/ (root)`
+4. 点 **Save**
+
+约 1–2 分钟后访问：
+
+```
+https://你的用户名.github.io/my-first-app/
+```
+
+车机、手机用浏览器打开这个 HTTPS 链接即可（定位与音频需授权）。
 
 ## 场景
 
