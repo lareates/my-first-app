@@ -18,17 +18,17 @@
     </header>
     <nav class="scene-grid">
       <button class="scene-card" data-scene="nap">
-        <span class="scene-icon">🌙</span>
+        <span class="scene-icon ico ico-scene" data-icon="moon"></span>
         <span class="scene-label">车内打盹</span>
         <span class="scene-desc">睡眠 · 冥想 · 呼吸</span>
       </button>
       <button class="scene-card" data-scene="camp">
-        <span class="scene-icon">⛺</span>
+        <span class="scene-icon ico ico-scene" data-icon="tent"></span>
         <span class="scene-label">户外露营</span>
         <span class="scene-desc">星空 · 地形 · 方位</span>
       </button>
       <button class="scene-card" data-scene="focus">
-        <span class="scene-icon">⚡</span>
+        <span class="scene-icon ico ico-scene" data-icon="bolt"></span>
         <span class="scene-label">充电等人</span>
         <span class="scene-desc">计时 · 电台 · 备忘</span>
       </button>
@@ -41,9 +41,30 @@
     <div class="aura-bg-layer aura-bg-drift" data-bg="sleep"></div>
     <div class="aura-bg-layer aura-bg-sunset" data-bg="breathe"></div>
 
+    <div class="nap-scene-bg" id="nap-scene-bg" aria-hidden="true">
+      <div class="nap-scene-bg-layer" data-scene-bg="garden">
+        <img class="nap-bg-photo" src="assets/backgrounds/garden.png" alt="" decoding="async">
+        <canvas class="nap-bg-particles"></canvas>
+        <div class="nap-bg-veil"></div>
+      </div>
+      <div class="nap-scene-bg-layer" data-scene-bg="coastal">
+        <img class="nap-bg-photo" src="assets/backgrounds/coastal.png" alt="" decoding="async">
+        <canvas class="nap-bg-particles"></canvas>
+        <div class="nap-bg-veil"></div>
+      </div>
+      <div class="nap-scene-bg-layer" data-scene-bg="dream">
+        <img class="nap-bg-photo" src="assets/backgrounds/dream.png" alt="" decoding="async">
+        <canvas class="nap-bg-particles"></canvas>
+        <div class="nap-bg-veil"></div>
+      </div>
+    </div>
+
     <header class="aura-header">
       <button type="button" class="aura-back" data-back aria-label="返回">
-        <span class="material-symbols-outlined">arrow_back</span>
+        <span class="ico" data-icon="back"></span>
+      </button>
+      <button type="button" class="aura-back nap-bg-btn" id="nap-bg-btn" aria-label="切换背景">
+        <span class="ico" data-icon="wallpaper"></span>
       </button>
     </header>
 
@@ -65,7 +86,10 @@
           <h1 class="aura-title" id="nap-title">DEEP RELAXATION</h1>
           <div class="aura-timer-row">
             <span class="aura-timer-line"></span>
-            <span class="aura-timer" id="nap-session-timer">10:00</span>
+            <button type="button" class="aura-timer-btn" id="nap-timer-btn" aria-label="设置会话时长">
+              <time class="aura-timer" id="nap-session-timer">10:00</time>
+              <span class="aura-timer-duration" id="nap-duration-label">10 分钟</span>
+            </button>
             <span class="aura-timer-line"></span>
           </div>
           <p class="aura-breath-hint" id="breath-hint">吸气</p>
@@ -77,27 +101,27 @@
       <div class="horizon-bar">
         <div class="horizon-modes" id="nap-modes">
           <button type="button" class="horizon-mode active" data-nap-mode="meditate">
-            <span class="material-symbols-outlined">self_improvement</span>
+            <span class="ico" data-icon="meditate"></span>
             <span>冥想</span>
           </button>
           <button type="button" class="horizon-mode mode-secondary" data-nap-mode="sleep">
-            <span class="material-symbols-outlined">bedtime</span>
+            <span class="ico" data-icon="sleep"></span>
             <span>睡眠</span>
           </button>
           <button type="button" class="horizon-mode" data-nap-mode="breathe">
-            <span class="material-symbols-outlined">air</span>
+            <span class="ico" data-icon="breathe"></span>
             <span>呼吸</span>
           </button>
         </div>
         <div class="horizon-volume">
-          <span class="material-symbols-outlined">volume_up</span>
+          <span class="ico ico-sm" data-icon="volume"></span>
           <div class="volume-track">
-            <div class="volume-fill" id="nap-volume-fill" style="width:70%"></div>
-            <input type="range" class="volume-input" id="nap-volume" min="0" max="100" value="70">
+            <div class="volume-fill" id="nap-volume-fill" style="width:85%"></div>
+            <input type="range" class="volume-input" id="nap-volume" min="0" max="100" value="85">
           </div>
         </div>
         <button type="button" class="horizon-play" id="nap-play" aria-label="播放">
-          <span class="material-symbols-outlined">play_arrow</span>
+          <span class="ico ico-play" data-icon="play" data-play-icon></span>
         </button>
       </div>
     </nav>
@@ -109,9 +133,19 @@
     <canvas id="constellation-canvas" aria-hidden="true"></canvas>
     <div class="aura-bg-layer aura-bg-camp active"></div>
 
+    <div class="camp-terrain-bg" id="camp-terrain-bg" aria-hidden="true">
+      <img
+        class="camp-terrain-photo"
+        src="assets/backgrounds/camp-terrain-night.png"
+        alt=""
+        decoding="async"
+      >
+      <div class="camp-terrain-veil"></div>
+    </div>
+
     <header class="aura-header">
       <button type="button" class="aura-back" data-back aria-label="返回">
-        <span class="material-symbols-outlined">arrow_back</span>
+        <span class="ico" data-icon="back"></span>
       </button>
     </header>
 
@@ -174,27 +208,27 @@
       <div class="horizon-bar">
         <div class="horizon-modes" id="camp-modes">
           <button type="button" class="horizon-mode active mode-camp" data-camp-mode="stars">
-            <span class="material-symbols-outlined">star</span>
+            <span class="ico" data-icon="star"></span>
             <span>星空</span>
           </button>
           <button type="button" class="horizon-mode mode-camp" data-camp-mode="terrain">
-            <span class="material-symbols-outlined">landscape</span>
+            <span class="ico" data-icon="terrain"></span>
             <span>地形</span>
           </button>
           <button type="button" class="horizon-mode mode-camp" data-camp-mode="orient">
-            <span class="material-symbols-outlined">explore</span>
+            <span class="ico" data-icon="compass"></span>
             <span>方位</span>
           </button>
         </div>
         <div class="horizon-volume">
-          <span class="material-symbols-outlined">volume_up</span>
+          <span class="ico ico-sm" data-icon="volume"></span>
           <div class="volume-track">
             <div class="volume-fill" id="camp-volume-fill" style="width:50%"></div>
             <input type="range" class="volume-input" id="camp-volume" min="0" max="100" value="50">
           </div>
         </div>
         <button type="button" class="horizon-play" id="camp-play" aria-label="播放">
-          <span class="material-symbols-outlined">play_arrow</span>
+          <span class="ico ico-play" data-icon="play" data-play-icon></span>
         </button>
       </div>
     </nav>
@@ -207,7 +241,7 @@
 
     <header class="aura-header">
       <button type="button" class="aura-back" data-back aria-label="返回">
-        <span class="material-symbols-outlined">arrow_back</span>
+        <span class="ico" data-icon="back"></span>
       </button>
       <button class="aura-back" id="bento-edit-toggle" style="margin-left:auto;font-family:var(--font-space);font-size:10px;letter-spacing:0.15em;">
         编辑布局
@@ -236,13 +270,11 @@
               <button class="tab" data-mode="pomodoro">番茄</button>
             </div>
           </div>
-          <div class="timer-display" id="timer-display">25:00</div>
-          <div class="timer-presets" id="timer-presets" style="display:flex;gap:0.5rem;justify-content:center;">
-            <button class="preset" data-min="5">5m</button>
-            <button class="preset" data-min="15">15m</button>
-            <button class="preset active" data-min="25">25m</button>
-            <button class="preset" data-min="45">45m</button>
-          </div>
+          <div class="timer-display" id="timer-display">10:00</div>
+          <button type="button" class="focus-duration-btn" id="focus-duration-btn" aria-label="设置倒计时时长">
+            <span id="focus-duration-label">10 分钟</span>
+            <span class="focus-duration-chevron">▾</span>
+          </button>
           <div style="display:flex;gap:0.5rem;justify-content:center;">
             <button class="action-btn primary" id="timer-start">开始</button>
             <button class="action-btn" id="timer-reset">重置</button>
@@ -319,28 +351,34 @@
       <div class="horizon-bar">
         <div class="horizon-modes" id="focus-modes">
           <button class="horizon-mode active" data-focus-panel="timer">
-            <span class="material-symbols-outlined">timer</span>
+            <span class="ico" data-icon="timer"></span>
             <span>计时</span>
           </button>
           <button class="horizon-mode" data-focus-panel="music">
-            <span class="material-symbols-outlined">headphones</span>
+            <span class="ico" data-icon="headphones"></span>
             <span>电台</span>
           </button>
           <button class="horizon-mode" data-focus-panel="notes">
-            <span class="material-symbols-outlined">edit_note</span>
+            <span class="ico" data-icon="notes"></span>
             <span>备忘</span>
           </button>
         </div>
         <button class="horizon-play" id="focus-play" aria-label="播放电台">
-          <span class="material-symbols-outlined">play_arrow</span>
+          <span class="ico ico-play" data-icon="play" data-play-icon></span>
         </button>
       </div>
     </nav>
   </section>
 
   <script src="js/utils.js"></script>
+  <script src="js/motion.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ambient.js"></script>
+  <script src="js/timer-picker.js"></script>
+  <script src="js/tesla.js"></script>
   <script src="js/art.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/nap-bg.js"></script>
   <script src="js/nap.js"></script>
   <script src="js/camp.js"></script>
   <script src="js/focus.js"></script>

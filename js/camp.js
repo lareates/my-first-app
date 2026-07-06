@@ -15,16 +15,43 @@ function initCamp(cleanupFns) {
   const badgeEl = document.getElementById('camp-badge');
   const metaEl = document.getElementById('camp-meta');
   const playBtn = document.getElementById('camp-play');
-  const playIcon = playBtn?.querySelector('.material-symbols-outlined');
   const volInput = document.getElementById('camp-volume');
   const volFill = document.getElementById('camp-volume-fill');
 
   let campMode = 'stars';
   let playing = false;
+  let terrainMotionOff = null;
+  let pointerX = 0;
+  let pointerY = -32;
+  let parallaxTicking = false;
   const ac = new AbortController();
 
   if (isPerseidsSeason() && isNightHour()) {
     badgeEl.textContent = '☄️ 英仙座流星雨';
+  }
+
+  function syncTerrainBackground(m) {
+    const isTerrain = m === 'terrain';
+    const photo = screen.querySelector('.camp-terrain-photo');
+
+    if (isTerrain) {
+      Ambient.stop();
+      if (!terrainMotionOff && photo) {
+        terrainMotionOff = Motion.register((now) => {
+          if (campMode !== 'terrain') return;
+          const t = now / 1000;
+          const scale = 1 + Math.sin(t * 0.08) * 0.006;
+          const x = Math.sin(t * 0.05) * 4;
+          const y = Math.cos(t * 0.04) * 3;
+          photo.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+        });
+      }
+    } else {
+      terrainMotionOff?.();
+      terrainMotionOff = null;
+      if (photo) photo.style.transform = '';
+      if (screen.classList.contains('active')) Ambient.start('camp');
+    }
   }
 
   function setCampMode(m) {
@@ -39,17 +66,13 @@ function initCamp(cleanupFns) {
     const labels = { stars: 'MODE / STARS', terrain: 'MODE / TERRAIN', orient: 'MODE / ORIENT' };
     const lines = metaEl?.querySelectorAll('.aura-meta-line');
     if (lines?.[2]) lines[2].textContent = labels[m];
+    syncTerrainBackground(m);
     if (playing) AudioEngine.startCampAudio(m, parseInt(volInput.value, 10));
   }
 
-  async function toggleCampPlay() {
-    try {
-      await AudioEngine.resume();
-    } catch (err) {
-      console.error('Audio resume failed:', err);
-    }
+  function toggleCampPlay() {
     playing = !playing;
-    if (playIcon) playIcon.textContent = playing ? 'pause' : 'play_arrow';
+    setPlayIcon(playBtn, playing);
     playBtn.classList.toggle('playing', playing);
     if (playing) {
       AudioEngine.startCampAudio(campMode, parseInt(volInput.value, 10));
@@ -58,16 +81,13 @@ function initCamp(cleanupFns) {
     }
   }
 
+  bindCarPlay(playBtn, toggleCampPlay);
+
   screen.addEventListener('click', (e) => {
     const modeBtn = e.target.closest('button[data-camp-mode]');
     if (modeBtn) {
       e.preventDefault();
       setCampMode(modeBtn.dataset.campMode);
-      return;
-    }
-    if (e.target.closest('#camp-play')) {
-      e.preventDefault();
-      toggleCampPlay();
     }
   }, { signal: ac.signal });
 
@@ -77,9 +97,14 @@ function initCamp(cleanupFns) {
   }, { signal: ac.signal });
 
   const onMove = (e) => {
-    const x = (e.clientX / window.innerWidth - 0.5) * 10;
-    const y = (e.clientY / window.innerHeight - 0.5) * 10;
-    parallax.style.transform = `translate(${x}px, ${-32 + y}px)`;
+    pointerX = (e.clientX / window.innerWidth - 0.5) * 7;
+    pointerY = -32 + (e.clientY / window.innerHeight - 0.5) * 7;
+    if (parallaxTicking) return;
+    parallaxTicking = true;
+    requestAnimationFrame(() => {
+      parallax.style.transform = `translate(${pointerX}px, ${pointerY}px)`;
+      parallaxTicking = false;
+    });
   };
   document.addEventListener('mousemove', onMove, { signal: ac.signal });
 
@@ -135,6 +160,7 @@ function initCamp(cleanupFns) {
 
   cleanupFns.push(() => {
     ac.abort();
+    terrainMotionOff?.();
     stopClock();
     AudioEngine.stopCampAudio();
   });
@@ -156,7 +182,7 @@ function initStars(cleanupFns) {
   const ctx = canvas.getContext('2d');
   let stars = [];
   let meteors = [];
-  let animId;
+  let motionOff = null;
   const perseids = isPerseidsSeason();
 
   function resize() {
@@ -187,10 +213,13 @@ function initStars(cleanupFns) {
     });
   }
 
-  function draw() {
+  function draw(now) {
+    const campScreen = document.getElementById('scene-camp');
+    if (campScreen?.dataset.campMode === 'terrain') return;
+
     ctx.fillStyle = 'rgba(3,5,12,0.25)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const t = Date.now() / 1000;
+    const t = now / 1000;
 
     stars.forEach(s => {
       s.x += s.drift * 0.05;
@@ -230,14 +259,13 @@ function initStars(cleanupFns) {
       ctx.stroke();
       return m.life > 0;
     });
-    animId = requestAnimationFrame(draw);
   }
 
   resize();
-  draw();
+  motionOff = Motion.register(draw);
   window.addEventListener('resize', resize);
   cleanupFns.push(() => {
-    cancelAnimationFrame(animId);
+    motionOff?.();
     window.removeEventListener('resize', resize);
   });
 }

@@ -8,6 +8,12 @@ const screens = {
 let currentScene = null;
 const cleanupFns = [];
 
+initIcons();
+
+['touchstart', 'click'].forEach(evt => {
+  document.addEventListener(evt, () => AudioEngine.resume(), { once: true, passive: true });
+});
+
 function showScene(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
   cleanupFns.forEach(fn => fn());
@@ -17,22 +23,33 @@ function showScene(name) {
     screens.home.classList.add('active');
     currentScene = null;
     AudioEngine.stopAll();
+    Ambient.start('home');
     return;
   }
 
   screens[name]?.classList.add('active');
   currentScene = name;
+  if (name !== 'nap') Ambient.start(name);
 
-  if (name === 'nap') initNap(cleanupFns);
+  if (name === 'nap') {
+    Ambient.start('nap');
+    initNap(cleanupFns);
+    return;
+  }
+
   if (name === 'camp') initCamp(cleanupFns);
   if (name === 'focus') initFocus(cleanupFns);
 }
 
 document.querySelectorAll('[data-scene]').forEach(btn => {
-  btn.addEventListener('click', () => showScene(btn.dataset.scene));
+  const go = () => showScene(btn.dataset.scene);
+  btn.addEventListener('click', go);
+  btn.addEventListener('touchend', go);
 });
 document.querySelectorAll('[data-back]').forEach(btn => {
-  btn.addEventListener('click', () => showScene('home'));
+  const back = () => showScene('home');
+  btn.addEventListener('click', back);
+  btn.addEventListener('touchend', back);
 });
 
 showScene('home');

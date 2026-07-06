@@ -1,8 +1,8 @@
 let timerMode = 'countdown';
-let timerSeconds = 25 * 60;
+let timerSeconds = 10 * 60;
 let timerRunning = false;
 let timerInterval = null;
-let timerInitial = 25 * 60;
+let timerInitial = 10 * 60;
 let sessionCount = 0;
 let todayMinutes = 0;
 let focusMixOn = false;
@@ -68,29 +68,42 @@ function initFocus(cleanupFns) {
   if (notes) notesEl.value = notes;
   notesEl.addEventListener('input', () => localStorage.setItem('ambient-notes', notesEl.value));
 
+  const durationBtn = document.getElementById('focus-duration-btn');
+  const durationLabelEl = document.getElementById('focus-duration-label');
+  let durationPicker = null;
+
+  function applyCountdownDuration(min) {
+    timerInitial = min * 60;
+    timerSeconds = timerInitial;
+    durationLabelEl.textContent = durationLabel(min);
+    updateTimerDisplay();
+    if (durationPicker) durationPicker.setMinutes(min);
+  }
+
+  function syncDurationPickerVisibility() {
+    const show = timerMode === 'countdown';
+    durationBtn.style.display = show ? 'inline-flex' : 'none';
+  }
+
   sessionEl.textContent = `会话 ${sessionCount} · 今日 ${todayMinutes} 分钟`;
 
-  // Timer modes
+  durationPicker = createTimerPicker({
+    triggerEl: durationBtn,
+    defaultMin: 10,
+    onChange: applyCountdownDuration,
+  });
+
   document.querySelectorAll('.timer-mode-tabs .tab').forEach(tab => {
     tab.onclick = () => {
       document.querySelectorAll('.timer-mode-tabs .tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       timerMode = tab.dataset.mode;
       resetTimer();
-      document.getElementById('timer-presets').style.display =
-        timerMode === 'countdown' ? 'flex' : 'none';
+      syncDurationPickerVisibility();
     };
   });
 
-  document.querySelectorAll('.preset').forEach(p => {
-    p.onclick = () => {
-      document.querySelectorAll('.preset').forEach(x => x.classList.remove('active'));
-      p.classList.add('active');
-      timerInitial = parseInt(p.dataset.min) * 60;
-      timerSeconds = timerInitial;
-      updateTimerDisplay();
-    };
-  });
+  syncDurationPickerVisibility();
 
   document.getElementById('timer-start').onclick = () => {
     timerRunning ? pauseTimer() : startTimer(sessionEl);
@@ -138,20 +151,14 @@ function initFocus(cleanupFns) {
   });
 
   function syncFocusPlayUI() {
-    const icon = focusPlayBtn.querySelector('.material-symbols-outlined');
-    icon.textContent = focusMixOn ? 'pause' : 'play_arrow';
+    setPlayIcon(focusPlayBtn, focusMixOn);
     focusPlayBtn.classList.toggle('playing', focusMixOn);
     lofiBtn.setAttribute('aria-pressed', focusMixOn);
     lofiBtn.textContent = focusMixOn ? '暂停' : '播放';
     viz.classList.toggle('playing', focusMixOn);
   }
 
-  async function toggleFocusMix() {
-    try {
-      await AudioEngine.resume();
-    } catch (err) {
-      console.error('Audio resume failed:', err);
-    }
+  function toggleFocusMix() {
     focusMixOn = !focusMixOn;
     if (focusMixOn) {
       AudioEngine.playVinylCrackle();
@@ -162,13 +169,14 @@ function initFocus(cleanupFns) {
     syncFocusPlayUI();
   }
 
-  lofiBtn.onclick = toggleFocusMix;
-  focusPlayBtn.addEventListener('click', toggleFocusMix);
+  bindCarPlay(lofiBtn, toggleFocusMix);
+  bindCarPlay(focusPlayBtn, toggleFocusMix);
 
   updateTimerDisplay();
   cleanupFns.push(() => {
     pauseTimer();
     stopClock();
+    durationPicker?.destroy();
     if (focusMixOn) AudioEngine.stopFocusMix();
   });
 }
@@ -224,8 +232,8 @@ function resetTimer() {
     timerInitial = 25 * 60;
     document.getElementById('lofi-track').textContent = 'Chill Beats · 本地合成';
   } else {
-    const active = document.querySelector('.preset.active');
-    timerInitial = active ? parseInt(active.dataset.min) * 60 : 25 * 60;
+    const activeMin = durationPicker?.getMinutes() ?? 10;
+    timerInitial = activeMin * 60;
     timerSeconds = timerInitial;
   }
   updateTimerDisplay();

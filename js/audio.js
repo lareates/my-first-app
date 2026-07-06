@@ -9,14 +9,14 @@ const AudioEngine = (() => {
   let reverbSend = null;
   let breathPhase = 0.5;
   let napMode = 'meditate';
-  let napVolume = 0.7;
+  let napVolume = 0.85;
 
   // ─── 核心基础设施 ───
   function ensureCtx() {
     if (ctx) return ctx;
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
-    master.gain.value = 0.92;
+    master.gain.value = 1.0;
     master.connect(ctx.destination);
 
     reverb = ctx.createConvolver();
