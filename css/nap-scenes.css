@@ -1,0 +1,414 @@
+/* ─── 车内打盹 · 三模式纯 CSS 场景 ─── */
+
+.nap-mode-backgrounds {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.nap-mode-scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1.2s ease, visibility 1.2s;
+}
+
+#scene-nap.nap-ambient-on[data-aura-mode="breathe"] .nap-scene-breathe,
+#scene-nap.nap-ambient-on[data-aura-mode="meditate"] .nap-scene-meditate,
+#scene-nap.nap-ambient-on[data-aura-mode="sleep"] .nap-scene-sleep {
+  opacity: 1;
+  visibility: visible;
+}
+
+#scene-nap.nap-has-scene-bg .nap-mode-backgrounds {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* ═══ 呼吸 BREATHE ═══ */
+.nap-scene-breathe {
+  background: radial-gradient(
+    ellipse 75% 65% at 50% 42%,
+    #4a1020 0%,
+    #2a0810 28%,
+    #120408 55%,
+    #000000 100%
+  );
+}
+
+.nap-breathe-center {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.nap-breathe-ripples {
+  position: relative;
+  width: 1px;
+  height: 1px;
+}
+
+.nap-breathe-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  margin: -50px 0 0 -50px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 130, 170, 0.45);
+  box-shadow:
+    0 0 18px rgba(255, 100, 150, 0.75),
+    0 0 48px rgba(255, 80, 130, 0.45),
+    0 0 90px rgba(255, 60, 110, 0.2),
+    inset 0 0 24px rgba(255, 120, 160, 0.25);
+  animation: napBreatheRipple 8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.nap-breathe-ring:nth-child(1) { animation-delay: 0s; }
+.nap-breathe-ring:nth-child(2) { animation-delay: 2s; }
+.nap-breathe-ring:nth-child(3) { animation-delay: 4s; }
+.nap-breathe-ring:nth-child(4) { animation-delay: 6s; }
+
+@keyframes napBreatheRipple {
+  0% {
+    transform: scale(0.25);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(4.2);
+    opacity: 0;
+  }
+}
+
+.nap-breathe-label {
+  margin-top: 2.5rem;
+  font-family: Georgia, 'Times New Roman', 'Songti SC', serif;
+  font-style: italic;
+  font-size: clamp(1.6rem, 4.5vw, 2.6rem);
+  font-weight: 400;
+  color: rgba(255, 195, 205, 0.88);
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 30px rgba(255, 100, 140, 0.35);
+}
+
+/* ═══ 冥想 MEDITATE ═══ */
+.nap-scene-meditate {
+  background: radial-gradient(ellipse 100% 80% at 50% 50%, #080818 0%, #000000 100%);
+}
+
+.nap-meditate-glow {
+  position: absolute;
+  top: 32%;
+  left: 50%;
+  width: min(75vw, 520px);
+  height: min(75vw, 520px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(100, 70, 220, 0.45) 0%, rgba(60, 40, 160, 0.15) 45%, transparent 70%);
+  filter: blur(48px);
+  animation: napMeditateGlow 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes napMeditateGlow {
+  0%, 100% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+.nap-meditate-blob-stage {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(280px, 52vw);
+  height: min(280px, 52vw);
+}
+
+.nap-meditate-blob {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    145deg,
+    #5a9aff 0%,
+    #6b5cff 35%,
+    #4a38ce 65%,
+    #2a2080 100%
+  );
+  border-radius: 58% 42% 52% 48% / 48% 58% 42% 52%;
+  box-shadow:
+    0 0 40px rgba(90, 140, 255, 0.5),
+    0 0 80px rgba(100, 80, 255, 0.3),
+    inset 0 -20px 40px rgba(30, 20, 100, 0.4),
+    inset 0 20px 30px rgba(180, 200, 255, 0.15);
+  animation: napBlobMorph 14s ease-in-out infinite;
+  will-change: border-radius, transform;
+}
+
+.nap-meditate-blob-inner {
+  inset: 18%;
+  background: linear-gradient(
+    160deg,
+    rgba(200, 220, 255, 0.35) 0%,
+    rgba(100, 120, 255, 0.2) 50%,
+    transparent 100%
+  );
+  border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%;
+  box-shadow: none;
+  animation: napBlobMorphInner 11s ease-in-out infinite reverse;
+  filter: blur(2px);
+}
+
+@keyframes napBlobMorph {
+  0%, 100% {
+    border-radius: 58% 42% 52% 48% / 48% 58% 42% 52%;
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    border-radius: 45% 55% 48% 52% / 52% 44% 56% 48%;
+    transform: rotate(8deg) scale(1.04);
+  }
+  50% {
+    border-radius: 52% 48% 44% 56% / 46% 54% 48% 52%;
+    transform: rotate(-5deg) scale(0.96);
+  }
+  75% {
+    border-radius: 48% 52% 56% 44% / 54% 46% 52% 48%;
+    transform: rotate(12deg) scale(1.02);
+  }
+}
+
+@keyframes napBlobMorphInner {
+  0%, 100% {
+    border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%;
+    transform: rotate(0deg);
+  }
+  33% {
+    border-radius: 55% 45% 48% 52% / 48% 52% 45% 55%;
+    transform: rotate(-15deg);
+  }
+  66% {
+    border-radius: 50% 50% 55% 45% / 55% 48% 52% 45%;
+    transform: rotate(10deg);
+  }
+}
+
+/* ═══ 睡眠 SLEEP ═══ */
+.nap-scene-sleep {
+  background: linear-gradient(to bottom, #08060f 0%, #040308 45%, #000000 100%);
+}
+
+.nap-sleep-sky {
+  --moon-size: clamp(116px, 22vw, 152px);
+  --moon-half: clamp(58px, 11vw, 76px);
+  --moon-top: calc(29vh - var(--moon-half));
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.nap-sleep-moon {
+  position: absolute;
+  top: var(--moon-top);
+  left: 50%;
+  width: var(--moon-size);
+  height: var(--moon-size);
+  transform: translateX(-50%);
+  overflow: visible;
+  filter:
+    drop-shadow(0 0 28px rgba(255, 255, 255, 0.55))
+    drop-shadow(0 0 72px rgba(210, 205, 255, 0.32));
+  animation: napMoonDrift 22s ease-in-out infinite;
+}
+
+.nap-sleep-stars {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--moon-top) - var(--moon-size));
+  width: min(92vw, 580px);
+  height: var(--moon-size);
+  transform: translateX(-50%);
+}
+
+.nap-sleep-star {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: var(--o, 0.6);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.85);
+  animation: napStarTwinkle 1.5s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+  will-change: opacity, transform;
+}
+
+.nap-sleep-star:nth-child(3n) {
+  width: 1.5px;
+  height: 1.5px;
+}
+
+.nap-sleep-star:nth-child(5n) {
+  width: 2.5px;
+  height: 2.5px;
+  box-shadow: 0 0 7px rgba(220, 215, 255, 0.9);
+}
+
+@keyframes napStarTwinkle {
+  0%, 100% {
+    opacity: calc(var(--o, 0.6) * 0.25);
+    transform: scale(0.75);
+  }
+  45% {
+    opacity: var(--o, 0.6);
+    transform: scale(1.15);
+  }
+  55% {
+    opacity: calc(var(--o, 0.6) * 0.9);
+    transform: scale(1);
+  }
+}
+
+@keyframes napMoonDrift {
+  0%, 100% { transform: translateX(-50%) translate(0, 0); }
+  50% { transform: translateX(-50%) translate(-6px, 5px); }
+}
+
+.nap-sleep-wave {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 55%;
+  bottom: 0;
+}
+
+.nap-sleep-wave-back {
+  opacity: 0.55;
+  animation: napWaveFloatBack 18s ease-in-out infinite;
+}
+
+.nap-sleep-wave-front {
+  height: 48%;
+  opacity: 0.75;
+  animation: napWaveFloatFront 14s ease-in-out infinite;
+}
+
+@keyframes napWaveFloatBack {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  33% {
+    transform: translateX(-2%) translateY(-12px);
+  }
+  66% {
+    transform: translateX(1.5%) translateY(8px);
+  }
+}
+
+@keyframes napWaveFloatFront {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  40% {
+    transform: translateX(2.5%) translateY(-18px);
+  }
+  70% {
+    transform: translateX(-1.5%) translateY(10px);
+  }
+}
+
+/* 启用新场景时隐藏旧中心图形 */
+#scene-nap.nap-ambient-on:not(.nap-has-scene-bg) .breath-ring-aura,
+#scene-nap.nap-ambient-on:not(.nap-has-scene-bg) .aura-art {
+  display: none;
+}
+
+#scene-nap.nap-ambient-on:not(.nap-has-scene-bg) .aura-visual-wrap {
+  display: none;
+}
+
+#scene-nap .aura-main {
+  box-sizing: border-box;
+}
+
+#scene-nap.nap-ambient-on:not(.nap-has-scene-bg) .aura-main {
+  position: relative;
+  justify-content: center;
+  padding: 0;
+  height: 100%;
+}
+
+#scene-nap.nap-ambient-on:not(.nap-has-scene-bg) .aura-center {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(11.5rem, 30vh, 14.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  z-index: 5;
+  transform: none;
+  pointer-events: none;
+}
+
+#scene-nap.nap-ambient-on:not(.nap-has-scene-bg) .aura-typography {
+  pointer-events: none;
+}
+
+#scene-nap.nap-ambient-on:not(.nap-has-scene-bg) .aura-typography > * {
+  pointer-events: auto;
+}
+
+/* 背景装饰文字置于暗角遮罩之上 */
+#scene-nap.nap-ambient-on .nap-breathe-center,
+#scene-nap.nap-ambient-on .nap-meditate-blob-stage,
+#scene-nap.nap-ambient-on .nap-sleep-sky {
+  position: relative;
+  z-index: 1;
+}
+
+#scene-nap.nap-ambient-on[data-aura-mode="breathe"] .aura-title {
+  color: rgba(255, 200, 210, 0.9);
+}
+
+#scene-nap.nap-ambient-on[data-aura-mode="meditate"] .aura-title {
+  color: rgba(200, 210, 255, 0.92);
+}
+
+#scene-nap.nap-ambient-on[data-aura-mode="sleep"] .aura-title {
+  color: rgba(210, 200, 240, 0.88);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nap-breathe-ring,
+  .nap-meditate-glow,
+  .nap-meditate-blob,
+  .nap-meditate-blob-inner,
+  .nap-sleep-moon,
+  .nap-sleep-star,
+  .nap-sleep-wave-back,
+  .nap-sleep-wave-front {
+    animation: none;
+  }
+}

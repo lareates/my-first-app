@@ -147,7 +147,105 @@ const AudioEngine = (() => {
     return lfo;
   }
 
-  /** Endel Relax — 紫罗兰氛围垫 + 空气纹理 + 随机柔音 */
+  /** 春雨车顶 — 粉红噪 + 低通 ~1500Hz */
+  function buildRain(bus) {
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer('pink', 8);
+    src.loop = true;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1500;
+    lp.Q.value = 0.65;
+    const g = ctx.createGain();
+    g.gain.value = 0.38;
+    src.connect(lp);
+    lp.connect(g);
+    g.connect(bus.dry);
+    g.connect(bus.wet);
+    src.start();
+    track(bus, src);
+    bus.mod = () => {};
+  }
+
+  /** 溪水潺潺 — 褐噪 + 粉红噪混合，微弱 LFO 调制 */
+  function buildStream(bus) {
+    const mix = ctx.createGain();
+    mix.gain.value = 0.36;
+    mix.connect(bus.dry);
+    mix.connect(bus.wet);
+
+    const brownSrc = ctx.createBufferSource();
+    brownSrc.buffer = noiseBuffer('brown', 8);
+    brownSrc.loop = true;
+    const brownLp = ctx.createBiquadFilter();
+    brownLp.type = 'lowpass';
+    brownLp.frequency.value = 480;
+    brownLp.Q.value = 0.5;
+    const brownG = ctx.createGain();
+    brownG.gain.value = 0.72;
+    brownSrc.connect(brownLp);
+    brownLp.connect(brownG);
+    brownG.connect(mix);
+    brownSrc.start();
+    track(bus, brownSrc);
+
+    const pinkSrc = ctx.createBufferSource();
+    pinkSrc.buffer = noiseBuffer('pink', 6);
+    pinkSrc.loop = true;
+    const pinkBp = ctx.createBiquadFilter();
+    pinkBp.type = 'bandpass';
+    pinkBp.frequency.value = 420;
+    pinkBp.Q.value = 0.35;
+    const pinkG = ctx.createGain();
+    pinkG.gain.value = 0.28;
+    pinkSrc.connect(pinkBp);
+    pinkBp.connect(pinkG);
+    pinkG.connect(mix);
+    pinkSrc.start();
+    track(bus, pinkSrc);
+
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.07;
+    const lfoG = ctx.createGain();
+    lfoG.gain.value = 0.045;
+    lfo.connect(lfoG);
+    lfoG.connect(mix.gain);
+    lfo.start();
+    bus.lfos.push(lfo);
+    bus.mod = () => {};
+  }
+
+  /** 潮汐海滨 — 褐噪底 + 正弦 LFO（~7s 周期）潮汐起伏 */
+  function buildWaves(bus) {
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer('brown', 10);
+    src.loop = true;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 220;
+    lp.Q.value = 0.45;
+    const g = ctx.createGain();
+    g.gain.value = 0.42;
+    src.connect(lp);
+    lp.connect(g);
+    g.connect(bus.dry);
+    g.connect(bus.wet);
+    src.start();
+    track(bus, src);
+
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 1 / 7;
+    const lfoG = ctx.createGain();
+    lfoG.gain.value = 0.22;
+    lfo.connect(lfoG);
+    lfoG.connect(g.gain);
+    lfo.start();
+    bus.lfos.push(lfo);
+    bus.mod = () => {};
+  }
+
   function buildRelax(bus) {
     const chord = [146.83, 174.61, 220, 261.63, 329.63]; // Dm 泛音列
     chord.forEach((f, i) => {
@@ -350,21 +448,27 @@ const AudioEngine = (() => {
     nap.bus = null;
   }
 
-  function startNapAudio(mode = 'meditate', volume = 70) {
+  const NAP_SOUNDSCAPES = ['woven', 'rain', 'stream', 'waves'];
+
+  function startNapAudio(mode = 'meditate', volume = 70, soundscape = 'woven') {
     ensureCtx();
     napMode = mode;
     napVolume = volume / 100;
     stopNapNodes();
 
+    const sc = NAP_SOUNDSCAPES.includes(soundscape) ? soundscape : 'woven';
     const bus = createBus(napVolume);
     bus.active = true;
     nap.bus = bus;
 
-    if (mode === 'sleep') buildSleep(bus);
+    if (sc === 'rain') buildRain(bus);
+    else if (sc === 'stream') buildStream(bus);
+    else if (sc === 'waves') buildWaves(bus);
+    else if (mode === 'sleep') buildSleep(bus);
     else if (mode === 'breathe') buildBreath(bus);
     else buildRelax(bus);
 
-    if (bus.mod) {
+    if (bus.mod && sc === 'woven') {
       nap.modId = setInterval(() => { if (nap.bus?.active) bus.mod(); }, 90);
     }
   }
@@ -372,6 +476,63 @@ const AudioEngine = (() => {
   function stopNapAudio() {
     if (nap.bus) nap.bus.active = false;
     stopNapNodes();
+  }
+
+  function fadeOutNapAudio(duration = 8) {
+    if (!nap.bus?.output || !ctx) return Promise.resolve();
+    const t = ctx.currentTime;
+    nap.bus.active = false;
+    nap.bus.output.gain.cancelScheduledValues(t);
+    nap.bus.output.gain.setValueAtTime(nap.bus.output.gain.value, t);
+    nap.bus.output.gain.linearRampToValueAtTime(0.001, t + duration);
+    return new Promise(resolve => {
+      setTimeout(() => {
+        stopNapNodes();
+        resolve();
+      }, duration * 1000 + 80);
+    });
+  }
+
+  function playBirdChorus() {
+    const c = ensureCtx();
+    const t = c.currentTime;
+    const birds = [
+      { f: 2800, t: 0, dur: 0.12 },
+      { f: 3200, t: 0.35, dur: 0.1 },
+      { f: 2400, t: 0.7, dur: 0.14 },
+      { f: 3600, t: 1.1, dur: 0.08 },
+      { f: 2900, t: 1.6, dur: 0.11 },
+      { f: 3100, t: 2.2, dur: 0.09 },
+      { f: 2700, t: 2.8, dur: 0.13 },
+      { f: 3400, t: 3.4, dur: 0.1 },
+    ];
+    birds.forEach(b => {
+      const osc = c.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(b.f, t + b.t);
+      osc.frequency.exponentialRampToValueAtTime(b.f * 0.85, t + b.t + b.dur);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, t + b.t);
+      g.gain.linearRampToValueAtTime(0.06, t + b.t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + b.t + b.dur);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(t + b.t);
+      osc.stop(t + b.t + b.dur + 0.05);
+    });
+    [1800, 2200].forEach((f, i) => {
+      const osc = c.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, t + i * 0.5);
+      g.gain.linearRampToValueAtTime(0.03, t + i * 0.5 + 0.3);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.5 + 2.5);
+      osc.connect(g);
+      g.connect(reverbSend);
+      osc.start(t + i * 0.5);
+      osc.stop(t + i * 0.5 + 3);
+    });
   }
 
   function setNapVolume(v) {
@@ -594,12 +755,16 @@ const AudioEngine = (() => {
     ensureCtx();
     focus.layers = { lofi: volumes.lofi ?? 70, rain: volumes.rain ?? 0, wiper: volumes.wiper ?? 0 };
     if (!focus.bus) {
-      const bus = createBus(1);
+      const bus = createBus(0);
       bus.active = true;
       buildFocusCore(bus);
       focus.bus = bus;
     }
     focus.bus.active = true;
+    const t = ctx.currentTime;
+    focus.bus.output.gain.cancelScheduledValues(t);
+    focus.bus.output.gain.setValueAtTime(focus.bus.output.gain.value, t);
+    focus.bus.output.gain.linearRampToValueAtTime(1, t + 0.35);
     applyFocusVolumes(volumes);
   }
 
@@ -613,13 +778,18 @@ const AudioEngine = (() => {
   }
 
   function stopFocusMix() {
-    if (focus.bus) {
-      focus.bus.active = false;
-      const t = ctx.currentTime;
-      focus.bus.lofiBed?.gain.setTargetAtTime(0, t, 0.4);
-      focus.bus.rainBed?.gain.setTargetAtTime(0, t, 0.4);
-      focus.bus.wiperBed?.gain.setTargetAtTime(0, t, 0.4);
-    }
+    if (!focus.bus) return;
+    focus.bus.active = false;
+    const t = ctx.currentTime;
+    focus.bus.output.gain.cancelScheduledValues(t);
+    focus.bus.output.gain.setValueAtTime(focus.bus.output.gain.value, t);
+    focus.bus.output.gain.linearRampToValueAtTime(0.001, t + 0.45);
+    setTimeout(() => {
+      if (focus.bus && !focus.bus.active) {
+        focus.bus.stop();
+        focus.bus = null;
+      }
+    }, 520);
   }
 
   // ─── 过渡音效 ───
@@ -675,9 +845,10 @@ const AudioEngine = (() => {
 
   return {
     resume,
-    startNapAudio, stopNapAudio, setNapVolume, setBreathPhase,
+    NAP_SOUNDSCAPES,
+    startNapAudio, stopNapAudio, fadeOutNapAudio, setNapVolume, setBreathPhase,
     startCampAudio, stopCampAudio, setCampVolume,
     startFocusMix, stopFocusMix, applyFocusVolumes,
-    playVinylCrackle, playSingingBowl, stopAll,
+    playVinylCrackle, playSingingBowl, playBirdChorus, stopAll,
   };
 })();

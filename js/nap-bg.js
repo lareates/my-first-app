@@ -1,8 +1,8 @@
 const NAP_SCENE_BACKGROUNDS = [
   {
     id: 'default',
-    label: '默认氛围',
-    desc: '随冥想 / 睡眠 / 呼吸切换',
+    label: '光景氛围',
+    desc: '呼吸 · 冥想 · 睡眠',
     thumb: null,
   },
   {
@@ -136,7 +136,7 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
 
   function attachMotion() {
     if (motionOff || !isCustom()) return;
-    motionOff = Motion.register(updatePhotoMotion);
+    motionOff = Motion.registerLow(updatePhotoMotion);
   }
 
   function detachMotion() {
@@ -146,8 +146,15 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
   }
 
   function syncAmbient() {
-    if (isCustom()) Ambient.stop();
-    else Ambient.start('nap');
+    const screen = document.getElementById('scene-nap');
+    const napMode = screen?.dataset.auraMode || 'meditate';
+    if (isCustom()) {
+      NapAmbient.stop();
+      Ambient.stop();
+    } else {
+      Ambient.stop();
+      NapAmbient.start(screen, napMode);
+    }
   }
 
   function apply(id, persist = true) {
@@ -200,8 +207,8 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     detachMotion();
     closeSheet();
     sheet.remove();
-    if (screen.classList.contains('active') && isCustom()) Ambient.start('nap');
-    screen.classList.remove('nap-has-scene-bg');
+    NapAmbient.stop();
+    screen.classList.remove('nap-has-scene-bg', 'nap-ambient-on');
   });
 
   return {

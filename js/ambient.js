@@ -100,7 +100,7 @@ const Ambient = (() => {
 
   function attachLoop() {
     if (unregister) return;
-    unregister = Motion.register(draw);
+    unregister = Motion.registerLow(draw);
   }
 
   function detachLoop() {

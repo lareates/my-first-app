@@ -105,3 +105,121 @@ function isNightHour(d = new Date()) {
   const h = d.getHours();
   return h >= 21 || h < 5;
 }
+
+function isEveningHour(d = new Date()) {
+  return d.getHours() >= 20;
+}
+
+/** 露营场景 · 统一地理定位（懒加载、缓存、避免重复弹窗） */
+const CampGeo = (() => {
+  const DENIED_KEY = 'camp-geo-denied';
+  const CACHE_KEY = 'camp-geo-cache';
+  const CACHE_TTL = 10 * 60 * 1000;
+
+  let watchId = null;
+  let lastPos = null;
+  const listeners = new Set();
+
+  function readCache() {
+    try {
+      const d = JSON.parse(sessionStorage.getItem(CACHE_KEY));
+      if (!d || Date.now() - d.ts > CACHE_TTL) return null;
+      return d;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeCache(pos) {
+    const c = pos.coords;
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+      latitude: c.latitude,
+      longitude: c.longitude,
+      altitude: c.altitude,
+      accuracy: c.accuracy,
+      altitudeAccuracy: c.altitudeAccuracy,
+      heading: c.heading,
+      speed: c.speed,
+      ts: Date.now(),
+    }));
+  }
+
+  function posFromCache(d) {
+    return {
+      coords: {
+        latitude: d.latitude,
+        longitude: d.longitude,
+        altitude: d.altitude,
+        accuracy: d.accuracy,
+        altitudeAccuracy: d.altitudeAccuracy,
+        heading: d.heading,
+        speed: d.speed,
+      },
+      cachedAt: d.ts,
+    };
+  }
+
+  function emit(pos, err) {
+    listeners.forEach(fn => fn(pos, err));
+  }
+
+  function start() {
+    if (!navigator.geolocation) {
+      emit(null, { code: 0, message: 'unsupported' });
+      return;
+    }
+    if (localStorage.getItem(DENIED_KEY)) {
+      emit(null, { code: 1, message: 'denied' });
+      return;
+    }
+
+    if (lastPos) emit(lastPos);
+    else {
+      const cached = readCache();
+      if (cached) {
+        lastPos = posFromCache(cached);
+        emit(lastPos);
+      }
+    }
+
+    if (watchId != null) return;
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        lastPos = pos;
+        writeCache(pos);
+        emit(pos);
+      },
+      (err) => {
+        if (err.code === 1) localStorage.setItem(DENIED_KEY, '1');
+        emit(null, err);
+      },
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 20000 }
+    );
+  }
+
+  function stop() {
+    if (watchId != null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    listeners.clear();
+    lastPos = null;
+  }
+
+  function subscribe(fn) {
+    listeners.add(fn);
+    if (lastPos) fn(lastPos);
+    else {
+      const cached = readCache();
+      if (cached) fn(posFromCache(cached));
+    }
+    return () => listeners.delete(fn);
+  }
+
+  function resetDenied() {
+    localStorage.removeItem(DENIED_KEY);
+  }
+
+  return { start, stop, subscribe, resetDenied, isDenied: () => !!localStorage.getItem(DENIED_KEY) };
+})();

@@ -16,6 +16,19 @@ const NAP_MODES = {
   },
 };
 
+const NAP_SOUND_LABELS = {
+  woven: '氛围织境',
+  rain: '春雨车顶',
+  stream: '溪水潺潺',
+  waves: '潮汐海滨',
+};
+
+const MODE_SOUND_MAP = {
+  meditate: 'rain',
+  breathe: 'stream',
+  sleep: 'waves',
+};
+
 function initNap(cleanupFns) {
   const screen = document.getElementById('scene-nap');
   const art = document.getElementById('nap-art');
@@ -32,39 +45,105 @@ function initNap(cleanupFns) {
   const ringOuter = screen.querySelector('.breath-ring-aura.outer');
   const ringInner = screen.querySelector('.breath-ring-aura.inner');
   const bgBtn = document.getElementById('nap-bg-btn');
+  const dawnOverlay = document.getElementById('nap-dawn-overlay');
+  const soundscapeEl = document.getElementById('nap-soundscapes');
 
   let napBg = null;
 
   let mode = 'meditate';
+  let soundscape = MODE_SOUND_MAP.meditate;
   let playing = false;
-  let sessionLengthSec = 10 * 60;
+  let waking = false;
+  let sessionLengthSec = 20 * 60;
   let sessionSec = sessionLengthSec;
   let breathStart = performance.now();
   let sessionInterval;
   let motionOff = null;
+  let smoothWave = 0.5;
   let pointerX = 0;
-  let pointerY = -48;
+  let pointerY = 0;
   let parallaxTicking = false;
   const ac = new AbortController();
+  const typographyEl = screen.querySelector('.aura-typography');
+
+  function isAmbientLayout() {
+    return screen.classList.contains('nap-ambient-on') && !screen.classList.contains('nap-has-scene-bg');
+  }
+
+  function applyParallax() {
+    if (isAmbientLayout()) {
+      parallax.style.transform = 'none';
+      if (typographyEl) {
+        typographyEl.style.transform = `translate3d(${pointerX}px, ${pointerY}px, 0)`;
+      }
+      return;
+    }
+    parallax.style.transform = `translate3d(${pointerX}px, ${-48 + pointerY}px, 0)`;
+    if (typographyEl) typographyEl.style.transform = '';
+  }
+
+  function renderMeta(cfg) {
+    const lines = [
+      `SOUNDSCAPE / ${NAP_SOUND_LABELS[soundscape] || soundscape}`,
+      ...cfg.meta,
+    ];
+    metaEl.innerHTML = lines.map(t => `<div class="aura-meta-line">${t}</div>`).join('');
+  }
+
+  function syncSoundscapeUi() {
+    soundscapeEl?.querySelectorAll('.nap-sound-chip').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.soundscape === soundscape);
+    });
+  }
+
+  function startPlayback() {
+    if (waking) {
+      resetWakeState();
+      sessionSec = sessionLengthSec;
+      updateTimerDisplay();
+    }
+    if (playing) return;
+    playing = true;
+    setPlayIcon(playBtn, true);
+    playBtn.classList.add('playing');
+    breathStart = performance.now();
+    attachBreathMotion();
+    AudioEngine.startNapAudio(mode, parseInt(volInput.value, 10), soundscape);
+    startSession();
+  }
+
+  function applySoundscape(sc, autoPlay = false) {
+    if (!NAP_SOUND_LABELS[sc]) return;
+    soundscape = sc;
+    syncSoundscapeUi();
+    renderMeta(NAP_MODES[mode]);
+    if (autoPlay) {
+      if (!playing) startPlayback();
+      else AudioEngine.startNapAudio(mode, parseInt(volInput.value, 10), soundscape);
+      return;
+    }
+    if (playing) {
+      AudioEngine.startNapAudio(mode, parseInt(volInput.value, 10), soundscape);
+    }
+  }
 
   function applyMode(m) {
     if (!NAP_MODES[m]) return;
     mode = m;
     const cfg = NAP_MODES[m];
     screen.dataset.auraMode = m;
-    setNapArt(art, m);
     title.textContent = cfg.title;
     sessionSec = sessionLengthSec;
     updateTimerDisplay();
     screen.style.setProperty('--breath-dur', `${cfg.breathDur}s`);
 
     if (!napBg?.isCustom()) {
-      screen.querySelectorAll('.aura-bg-layer[data-bg]').forEach(layer => {
-        layer.classList.toggle('active', layer.dataset.bg === m);
-      });
+      NapAmbient.setMode(m);
     }
 
-    metaEl.innerHTML = cfg.meta.map(t => `<div class="aura-meta-line">${t}</div>`).join('');
+    soundscape = MODE_SOUND_MAP[m];
+    syncSoundscapeUi();
+    renderMeta(cfg);
 
     screen.querySelectorAll('#nap-modes .horizon-mode').forEach(btn => {
       const active = btn.dataset.napMode === m;
@@ -73,8 +152,9 @@ function initNap(cleanupFns) {
     });
 
     if (playing) {
-      AudioEngine.startNapAudio(m, parseInt(volInput.value, 10));
+      AudioEngine.startNapAudio(m, parseInt(volInput.value, 10), soundscape);
     }
+    applyParallax();
   }
 
   function updateTimerDisplay() {
@@ -89,14 +169,16 @@ function initNap(cleanupFns) {
   }
 
   function setBreathVisual(wave) {
-    const outerScale = 1.2 + 0.08 * wave;
-    const innerScale = 1.05 + 0.06 * (1 - wave);
-    const artScale = 1 + 0.05 * Math.sin(wave * Math.PI);
-    ringOuter.style.transform = `scale(${outerScale})`;
-    ringInner.style.transform = `scale(${innerScale})`;
-    ringOuter.style.opacity = String(0.65 + 0.35 * wave);
-    ringInner.style.opacity = String(0.7 + 0.3 * (1 - wave));
-    art.style.transform = `scale(${artScale})`;
+    smoothWave += (wave - smoothWave) * 0.14;
+    const w = smoothWave;
+    const outerScale = 1.2 + 0.08 * w;
+    const innerScale = 1.05 + 0.06 * (1 - w);
+    const artScale = 1 + 0.05 * Math.sin(w * Math.PI);
+    ringOuter.style.transform = `translate3d(0,0,0) scale(${outerScale})`;
+    ringInner.style.transform = `translate3d(0,0,0) scale(${innerScale})`;
+    ringOuter.style.opacity = String(0.65 + 0.35 * w);
+    ringInner.style.opacity = String(0.7 + 0.3 * (1 - w));
+    art.style.transform = `translate3d(0,0,0) scale(${artScale})`;
   }
 
   function setBreathRest() {
@@ -142,21 +224,60 @@ function initNap(cleanupFns) {
   function startSession() {
     if (sessionInterval) return;
     sessionInterval = setInterval(() => {
-      if (!playing) return;
+      if (!playing || waking) return;
       sessionSec--;
-      if (sessionSec < 0) sessionSec = sessionLengthSec;
+      if (sessionSec <= 0) {
+        sessionSec = 0;
+        updateTimerDisplay();
+        triggerGentleWake();
+        return;
+      }
       updateTimerDisplay();
     }, 1000);
   }
 
+  function triggerGentleWake() {
+    if (waking) return;
+    waking = true;
+    playing = false;
+    setPlayIcon(playBtn, false);
+    playBtn.classList.remove('playing');
+    detachBreathMotion();
+    screen.classList.add('nap-waking');
+    title.textContent = 'GENTLE WAKE';
+    hintEl.textContent = '温和唤醒 · 晨光渐起';
+    hintEl.style.opacity = '0.85';
+
+    AudioEngine.fadeOutNapAudio(8);
+    requestAnimationFrame(() => dawnOverlay?.classList.add('active'));
+
+    setTimeout(() => AudioEngine.playBirdChorus(), 2000);
+    setTimeout(() => AudioEngine.playBirdChorus(), 4500);
+  }
+
+  function resetWakeState() {
+    waking = false;
+    screen.classList.remove('nap-waking');
+    dawnOverlay?.classList.remove('active');
+    const cfg = NAP_MODES[mode];
+    title.textContent = cfg.title;
+    hintEl.style.opacity = mode === 'breathe' ? '0.35' : '0';
+    if (mode === 'breathe') hintEl.textContent = '吸气';
+  }
+
   function togglePlay() {
+    if (waking) {
+      resetWakeState();
+      sessionSec = sessionLengthSec;
+      updateTimerDisplay();
+    }
     playing = !playing;
     setPlayIcon(playBtn, playing);
     playBtn.classList.toggle('playing', playing);
     if (playing) {
       breathStart = performance.now();
       attachBreathMotion();
-      AudioEngine.startNapAudio(mode, parseInt(volInput.value, 10));
+      AudioEngine.startNapAudio(mode, parseInt(volInput.value, 10), soundscape);
       startSession();
     } else {
       detachBreathMotion();
@@ -166,8 +287,11 @@ function initNap(cleanupFns) {
 
   const timerPicker = createTimerPicker({
     triggerEl: timerBtn,
-    defaultMin: 10,
-    onChange: setDuration,
+    defaultMin: 20,
+    onChange: (min) => {
+      if (waking) resetWakeState();
+      setDuration(min);
+    },
     signal: ac.signal,
   });
 
@@ -181,6 +305,12 @@ function initNap(cleanupFns) {
     if (modeBtn) {
       e.preventDefault();
       applyMode(modeBtn.dataset.napMode);
+      return;
+    }
+    const soundBtn = e.target.closest('button[data-soundscape]');
+    if (soundBtn) {
+      e.preventDefault();
+      unlockAndPlay(() => applySoundscape(soundBtn.dataset.soundscape, true));
     }
   }, { signal: ac.signal });
 
@@ -191,19 +321,20 @@ function initNap(cleanupFns) {
 
   const onMove = (e) => {
     pointerX = (e.clientX / window.innerWidth - 0.5) * 10;
-    pointerY = -48 + (e.clientY / window.innerHeight - 0.5) * 10;
+    pointerY = (e.clientY / window.innerHeight - 0.5) * 10;
     if (parallaxTicking) return;
     parallaxTicking = true;
     requestAnimationFrame(() => {
-      parallax.style.transform = `translate(${pointerX}px, ${pointerY}px)`;
+      applyParallax();
       parallaxTicking = false;
     });
   };
   document.addEventListener('mousemove', onMove, { signal: ac.signal });
 
   applyMode('meditate');
-  durationLabelEl.textContent = durationLabel(10);
+  durationLabelEl.textContent = durationLabel(20);
   setBreathRest();
+  applyParallax();
 
   cleanupFns.push(() => {
     ac.abort();
@@ -211,5 +342,6 @@ function initNap(cleanupFns) {
     timerPicker.destroy();
     clearInterval(sessionInterval);
     AudioEngine.stopNapAudio();
+    NapAmbient.stop();
   });
 }

@@ -14,15 +14,22 @@ function showAudioToast(show, msg) {
 }
 
 function bindCarPlay(btn, toggleFn) {
+  if (!btn) return;
   let last = 0;
+  let touchHandled = false;
   const run = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const now = Date.now();
-    if (now - last < 400) return;
+    if (now - last < 350) return;
+    if (e.type === 'click' && touchHandled) {
+      touchHandled = false;
+      return;
+    }
     last = now;
+    if (e.type === 'touchend') touchHandled = true;
     unlockAndPlay(toggleFn);
   };
+  btn.addEventListener('touchend', run, { passive: false });
   btn.addEventListener('click', run);
-  btn.addEventListener('touchend', run);
 }

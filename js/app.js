@@ -31,8 +31,10 @@ function showScene(name) {
   currentScene = name;
   if (name !== 'nap') Ambient.start(name);
 
+  BookmarkHint.tryShow(screens[name], cleanupFns);
+
   if (name === 'nap') {
-    Ambient.start('nap');
+    Ambient.stop();
     initNap(cleanupFns);
     return;
   }
