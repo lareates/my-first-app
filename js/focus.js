@@ -47,7 +47,22 @@ function triggerCompletionEffects(wasPomodoro) {
 
 function initFocus(cleanupFns) {
   const sessionEl = document.getElementById('focus-session');
+  const screen = document.getElementById('scene-focus');
   const ac = new AbortController();
+
+  PorscheCluster.init({
+    clusterEl: document.getElementById('porsche-cluster'),
+    stateGetter: () => ({
+      timerMode,
+      timerSeconds,
+      timerInitial,
+      timerRunning,
+      todayMinutes,
+    }),
+    cleanupFns,
+  });
+
+  FocusTheme.init(screen, cleanupFns);
 
   setFocusStatus('idle');
 

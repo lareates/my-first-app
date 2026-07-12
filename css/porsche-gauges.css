@@ -1,0 +1,297 @@
+/* ═══════════════════════════════════════════
+   Porsche 911 · Five-Dial Heritage Cluster
+   ═══════════════════════════════════════════ */
+
+.porsche-cluster {
+  display: none;
+  width: min(100%, 52rem);
+  margin: 0.25rem auto 1.5rem;
+  padding: 0.5rem 0.75rem 1rem;
+  perspective: 900px;
+  --p-matte: #121212;
+  --p-matte-deep: #0a0a0a;
+  --p-cream: #f2ecd8;
+  --p-cream-dim: rgba(242, 236, 216, 0.45);
+  --p-needle: #ff3b1f;
+  --p-needle-glow: rgba(255, 59, 31, 0.55);
+  --p-ring: #2a2a2a;
+  --p-chrome: rgba(180, 180, 185, 0.35);
+  font-family: 'Orbitron', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+#scene-focus.theme-porsche .porsche-cluster {
+  display: block;
+}
+#scene-focus.theme-porsche .focus-theme-gauge-stub {
+  display: none;
+}
+#scene-focus.theme-porsche .focus-zen-clock-block {
+  opacity: 0.28;
+  transform: scale(0.92);
+  pointer-events: none;
+  margin-bottom: 0.35rem;
+}
+#scene-focus.theme-porsche .focus-theme-preview {
+  color: rgba(242, 236, 216, 0.55);
+}
+
+.porsche-cluster-arc {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(8deg);
+}
+
+.porsche-gauge {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 1;
+  transform-style: preserve-3d;
+}
+
+/* 弧形交叠：中间最大，两侧依次缩小并下沉 */
+.porsche-gauge--xs {
+  width: clamp(72px, 14vw, 96px);
+  height: clamp(72px, 14vw, 96px);
+  z-index: 1;
+  margin: 0 -10px 6px;
+  transform: translateY(18px) scale(0.92);
+}
+.porsche-gauge--sm {
+  width: clamp(84px, 16vw, 112px);
+  height: clamp(84px, 16vw, 112px);
+  z-index: 2;
+  margin: 0 -14px 4px;
+  transform: translateY(10px) scale(0.96);
+}
+.porsche-gauge--md {
+  width: clamp(110px, 22vw, 148px);
+  height: clamp(110px, 22vw, 148px);
+  z-index: 3;
+  margin: 0 -18px 2px;
+  transform: translateY(4px);
+}
+.porsche-gauge--lg {
+  width: clamp(148px, 30vw, 200px);
+  height: clamp(148px, 30vw, 200px);
+  z-index: 5;
+  margin: 0 -22px;
+  transform: translateY(0) scale(1.02);
+}
+
+.porsche-gauge-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255,255,255,0.06) 0%, transparent 42%),
+    radial-gradient(circle at 50% 54%, #1a1a1a 0%, var(--p-matte) 48%, var(--p-matte-deep) 100%);
+  border: 2px solid var(--p-ring);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 10px 28px rgba(0,0,0,0.65),
+    0 2px 0 rgba(255,255,255,0.05) inset,
+    0 -8px 20px rgba(0,0,0,0.55) inset,
+    8px 12px 24px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+
+.porsche-gauge--lg .porsche-gauge-face {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 14px 36px rgba(0,0,0,0.75),
+    0 2px 0 rgba(255,255,255,0.06) inset,
+    0 -10px 28px rgba(0,0,0,0.6) inset,
+    12px 16px 32px rgba(0,0,0,0.45);
+}
+
+.porsche-gauge-bezel {
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+
+.porsche-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.porsche-tick {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: 50%;
+  margin-left: -0.5px;
+  margin-top: -50%;
+  transform-origin: center bottom;
+  background: linear-gradient(to top, transparent 82%, var(--p-cream-dim) 82%, var(--p-cream-dim) 100%);
+}
+.porsche-tick.major {
+  width: 2px;
+  margin-left: -1px;
+  background: linear-gradient(to top, transparent 76%, var(--p-cream) 76%, var(--p-cream) 100%);
+}
+
+.porsche-tick-num {
+  position: absolute;
+  width: 1.8em;
+  text-align: center;
+  font-size: clamp(6px, 1.3vw, 9px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--p-cream);
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.porsche-needle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 40%;
+  margin-left: -1.5px;
+  margin-top: -40%;
+  background: linear-gradient(to top, #8a1408 0%, var(--p-needle) 35%, #ff6a45 100%);
+  border-radius: 2px 2px 0 0;
+  transform-origin: center bottom;
+  transform: rotate(-135deg);
+  box-shadow: 0 0 8px var(--p-needle-glow);
+  z-index: 4;
+  transition: none;
+  will-change: transform;
+}
+.porsche-needle::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 50%;
+  background: var(--p-needle);
+  box-shadow: 0 0 6px var(--p-needle-glow);
+}
+.porsche-needle.tick-jitter {
+  animation: porscheNeedleTick 0.08s ease-out;
+}
+@keyframes porscheNeedleTick {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.35); }
+  100% { filter: brightness(1); }
+}
+
+.porsche-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12%;
+  height: 12%;
+  min-width: 10px;
+  min-height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #666 0%, #222 55%, #000 100%);
+  box-shadow: 0 0 0 2px #3a3a3a, 0 1px 3px rgba(0,0,0,0.8);
+  z-index: 5;
+}
+
+.porsche-digital {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  transform: translateX(-50%);
+  font-size: clamp(0.85rem, 2.6vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--p-cream);
+  text-shadow: 0 0 12px rgba(242, 236, 216, 0.25);
+  z-index: 3;
+  font-variant-numeric: tabular-nums;
+}
+
+.porsche-gauge-caption {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  font-size: clamp(6px, 1.2vw, 9px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--p-cream-dim);
+  z-index: 3;
+  white-space: nowrap;
+}
+
+.porsche-mini-read {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translateX(-50%);
+  font-size: clamp(7px, 1.5vw, 11px);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--p-cream);
+  z-index: 3;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.porsche-cluster-mark {
+  text-align: center;
+  margin-top: 0.85rem;
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  color: rgba(242, 236, 216, 0.35);
+  text-transform: uppercase;
+}
+
+/* 点火自检 */
+.porsche-cluster.igniting .porsche-needle {
+  transition: transform 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+.porsche-cluster.igniting .porsche-gauge-face {
+  animation: porscheIgnitePulse 1.5s ease-out;
+}
+@keyframes porscheIgnitePulse {
+  0%, 100% { filter: brightness(1); }
+  40% { filter: brightness(1.12); }
+  70% { filter: brightness(0.95); }
+}
+
+@media (max-width: 640px) {
+  .porsche-cluster-arc {
+    transform: rotateX(4deg) scale(0.92);
+  }
+  .porsche-gauge--xs {
+    margin: 0 -6px 6px;
+  }
+  .porsche-gauge--sm {
+    margin: 0 -8px 4px;
+  }
+  .porsche-gauge--md {
+    margin: 0 -10px 2px;
+  }
+  .porsche-gauge--lg {
+    margin: 0 -12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .porsche-needle {
+    transition: none;
+  }
+  .porsche-cluster.igniting .porsche-gauge-face {
+    animation: none;
+  }
+}

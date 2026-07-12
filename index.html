@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="dark">
+<html lang="zh-CN" class="dark heritage-ui-off">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -8,6 +8,11 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="css/aura.css">
   <link rel="stylesheet" href="css/nap-scenes.css">
+  <link rel="stylesheet" href="css/porsche-gauges.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js" defer></script>
 </head>
 <body>
   <!-- 首页 -->
@@ -26,7 +31,7 @@
       <button class="scene-card" data-scene="camp">
         <span class="scene-icon ico ico-scene" data-icon="tent"></span>
         <span class="scene-label">户外露营</span>
-        <span class="scene-desc">星空 · 地形 · 方位</span>
+        <span class="scene-desc">星空 · 地形 · 天象</span>
       </button>
       <button class="scene-card" data-scene="focus">
         <span class="scene-icon ico ico-scene" data-icon="bolt"></span>
@@ -247,9 +252,7 @@
 
   <!-- 场景 2: 户外露营 Aetheris -->
   <section id="scene-camp" class="screen aura-screen" data-camp-mode="stars">
-    <canvas id="stars-canvas" aria-hidden="true"></canvas>
-    <canvas id="milky-canvas" aria-hidden="true"></canvas>
-    <canvas id="constellation-canvas" aria-hidden="true"></canvas>
+    <canvas id="stars-canvas" class="camp-starfield" aria-hidden="true"></canvas>
     <div class="camp-evening-rim" id="camp-evening-rim" aria-hidden="true"></div>
     <div class="aura-bg-layer aura-bg-camp active"></div>
 
@@ -288,6 +291,10 @@
 
           <div class="camp-panel" data-camp-panel="terrain">
             <div class="camp-glass camp-stats-aura">
+              <div class="camp-sys-status" id="camp-sys-status" aria-live="polite">
+                <span class="camp-sys-led" aria-hidden="true"></span>
+                <span class="camp-sys-label">[ SYSTEM ACTIVE ]</span>
+              </div>
               <div class="camp-stat-aura">
                 <span class="stat-label">海拔</span>
                 <div class="flip-display" id="flip-altitude" data-value="—"></div>
@@ -311,8 +318,9 @@
           </div>
 
           <div class="camp-panel" data-camp-panel="orient">
-            <div class="compass-aura-wrap">
+            <div class="compass-aura-wrap" id="compass-wrap" data-astro-mode="day">
               <div class="compass-stage">
+                <div class="compass-astro-glow" id="compass-astro-glow" aria-hidden="true"></div>
                 <div class="compass-ring-aura" id="compass-ring">
                   <span class="compass-n-aura">N</span>
                   <span class="compass-e-aura">E</span>
@@ -321,8 +329,9 @@
                 </div>
                 <div class="compass-needle-aura" id="compass-needle"></div>
               </div>
-              <p class="compass-heading-readout" id="compass-heading">—°</p>
-              <p class="camp-status-aura" id="compass-status">陀螺仪指南针 · 点击表盘启用</p>
+              <p class="compass-phase-label" id="compass-phase">距日落</p>
+              <p class="compass-heading-readout" id="compass-heading">--:--:--</p>
+              <p class="camp-status-aura compass-astro-status" id="compass-status">等待 GPS · 天体定位</p>
             </div>
           </div>
         </div>
@@ -342,7 +351,7 @@
           </button>
           <button type="button" class="horizon-mode mode-camp" data-camp-mode="orient">
             <span class="ico" data-icon="compass"></span>
-            <span>方位</span>
+            <span>天象</span>
           </button>
         </div>
         <div class="horizon-volume">
@@ -360,7 +369,7 @@
   </section>
 
   <!-- 场景 3: 充电等人 — 极客数字软装 -->
-  <section id="scene-focus" class="screen aura-screen focus-zen">
+  <section id="scene-focus" class="screen aura-screen focus-zen theme-default" data-focus-theme="default">
     <div class="aura-bg-layer aura-bg-focus active"></div>
     <div class="focus-ripple" id="focus-ripple" aria-hidden="true"></div>
 
@@ -368,6 +377,11 @@
       <button type="button" class="aura-back" data-back aria-label="返回">
         <span class="ico" data-icon="back"></span>
       </button>
+      <div class="focus-theme-bar" id="focus-theme-chips" role="group" aria-label="主题切换">
+        <button type="button" class="focus-theme-chip active" data-focus-theme="default" aria-pressed="true">Default</button>
+        <button type="button" class="focus-theme-chip" data-focus-theme="porsche-911" aria-pressed="false">911</button>
+        <button type="button" class="focus-theme-chip" data-focus-theme="gtr-rmode" aria-pressed="false">GTR</button>
+      </div>
       <div class="bookmark-hint-anchor" aria-hidden="true"></div>
     </header>
 
@@ -378,6 +392,7 @@
     </aside>
 
     <main class="focus-zen-main">
+      <p class="focus-theme-preview" id="focus-theme-preview">THEME / DEFAULT · Zen Soft Clock</p>
       <div class="focus-zen-clock-block">
         <time class="focus-zen-clock" id="focus-clock">00:00</time>
         <span class="focus-zen-date" id="focus-date"></span>
@@ -386,6 +401,73 @@
           <span id="focus-status-text">待命中</span>
           <span class="focus-zen-session" id="focus-session">会话 0 · 今日 0 分钟</span>
         </div>
+      </div>
+
+      <!-- 皮肤占位（非保时捷主题） -->
+      <div class="focus-theme-gauge-stub" id="focus-theme-gauge-stub" aria-hidden="true">
+        <span class="focus-theme-gauge-label">INSTRUMENT CLUSTER</span>
+        <span class="focus-theme-gauge-text">表盘皮肤占位 · 当前逻辑已接通</span>
+      </div>
+
+      <!-- Porsche 911 五连仪表盘 -->
+      <div class="porsche-cluster" id="porsche-cluster" hidden aria-hidden="true">
+        <div class="porsche-cluster-arc">
+          <!-- 油压位 → 番茄进度 -->
+          <div class="porsche-gauge porsche-gauge--xs" data-gauge="tomato">
+            <div class="porsche-gauge-face">
+              <div class="porsche-gauge-bezel"></div>
+              <div class="porsche-ticks" data-ticks="20" data-major="5"></div>
+              <div class="porsche-needle"></div>
+              <div class="porsche-hub"></div>
+              <div class="porsche-mini-read">READY</div>
+              <div class="porsche-gauge-caption">POMO</div>
+            </div>
+          </div>
+          <!-- 时速表 → 数字时钟 -->
+          <div class="porsche-gauge porsche-gauge--md" data-gauge="clock">
+            <div class="porsche-gauge-face">
+              <div class="porsche-gauge-bezel"></div>
+              <div class="porsche-ticks" data-ticks="24" data-major="6"></div>
+              <div class="porsche-needle"></div>
+              <div class="porsche-hub"></div>
+              <div class="porsche-digital" id="porsche-digital-clock">00:00</div>
+              <div class="porsche-gauge-caption">TIME</div>
+            </div>
+          </div>
+          <!-- 转速表 → 秒针 -->
+          <div class="porsche-gauge porsche-gauge--lg" data-gauge="seconds">
+            <div class="porsche-gauge-face">
+              <div class="porsche-gauge-bezel"></div>
+              <div class="porsche-ticks" data-ticks="60" data-major="10"></div>
+              <div class="porsche-needle"></div>
+              <div class="porsche-hub"></div>
+              <div class="porsche-gauge-caption">SEC · ×1000</div>
+            </div>
+          </div>
+          <!-- 油量 → 今日专注 -->
+          <div class="porsche-gauge porsche-gauge--sm" data-gauge="today">
+            <div class="porsche-gauge-face">
+              <div class="porsche-gauge-bezel"></div>
+              <div class="porsche-ticks" data-ticks="20" data-major="5"></div>
+              <div class="porsche-needle"></div>
+              <div class="porsche-hub"></div>
+              <div class="porsche-mini-read">0m</div>
+              <div class="porsche-gauge-caption">FOCUS</div>
+            </div>
+          </div>
+          <!-- 水温 → 系统环境 -->
+          <div class="porsche-gauge porsche-gauge--xs" data-gauge="sys">
+            <div class="porsche-gauge-face">
+              <div class="porsche-gauge-bezel"></div>
+              <div class="porsche-ticks" data-ticks="20" data-major="5"></div>
+              <div class="porsche-needle"></div>
+              <div class="porsche-hub"></div>
+              <div class="porsche-mini-read">--%</div>
+              <div class="porsche-gauge-caption">SYS</div>
+            </div>
+          </div>
+        </div>
+        <p class="porsche-cluster-mark">Porsche 911 · Instrument Cluster</p>
       </div>
 
       <section class="focus-zen-timer" id="panel-timer">
@@ -434,6 +516,33 @@
     </main>
   </section>
 
+  <!-- Heritage 付费弹窗：挂在 body，避免被 .screen overflow 裁切 -->
+  <div class="focus-paywall" id="focus-paywall" aria-hidden="true">
+    <div class="focus-paywall-backdrop" data-paywall-close></div>
+    <div class="focus-paywall-panel" role="dialog" aria-modal="true" aria-labelledby="focus-paywall-title">
+      <p class="focus-paywall-eyebrow">HERITAGE PACK</p>
+      <h2 class="focus-paywall-title" id="focus-paywall-title">Unlock Heritage Themes</h2>
+      <p class="focus-paywall-copy">
+        ✨ Unlock Heritage Themes Pack ($4.99) — Bring the soul of Porsche 911 &amp; Nissan GTR to your electric cabin.
+      </p>
+      <ul class="focus-paywall-perks">
+        <li>Porsche 911 instrument aura</li>
+        <li>Nissan GTR R-Mode cabin skin</li>
+        <li>Lifetime unlock · this device</li>
+      </ul>
+      <div class="focus-paywall-actions">
+        <button type="button" class="focus-paywall-buy" id="focus-paywall-preview" data-paywall-preview>
+          立即预览 911 皮肤（开发解锁）
+        </button>
+        <a class="focus-paywall-buy focus-paywall-buy--ghost" id="focus-paywall-lemon" href="https://aetheris.lemonsqueezy.com/checkout/buy/heritage-themes" target="_blank" rel="noopener noreferrer">
+          Buy with Lemon Squeezy · $4.99
+        </a>
+        <button type="button" class="focus-paywall-dismiss" data-paywall-close>Maybe later</button>
+      </div>
+      <p class="focus-paywall-note">点「立即预览」可先看表盘；正式上线后改为仅 Lemon Squeezy 购买。</p>
+    </div>
+  </div>
+
   <script src="js/utils.js"></script>
   <script src="js/motion.js"></script>
   <script src="js/icons.js"></script>
@@ -447,6 +556,8 @@
   <script src="js/nap-bg.js"></script>
   <script src="js/nap.js"></script>
   <script src="js/camp.js"></script>
+  <script src="js/focus-theme.js"></script>
+  <script src="js/porsche-cluster.js"></script>
   <script src="js/focus.js"></script>
   <script src="js/app.js"></script>
 </body>

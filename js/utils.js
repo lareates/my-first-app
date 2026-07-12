@@ -55,6 +55,131 @@ function setFlipValue(el, value) {
   }
 }
 
+/** 无翻牌动画的即时写入 — 供高频 Data Skitter 使用 */
+function setFlipInstant(el, value) {
+  if (!el) return;
+  const str = String(value);
+  el.dataset.value = str;
+  const chars = str.split('');
+  let digits = el.querySelectorAll('.flip-digit');
+
+  while (digits.length > chars.length) {
+    digits[digits.length - 1].remove();
+    digits = el.querySelectorAll('.flip-digit');
+  }
+  for (let i = digits.length; i < chars.length; i++) {
+    const digit = document.createElement('span');
+    digit.className = 'flip-digit';
+    const inner = document.createElement('span');
+    inner.className = 'flip-inner';
+    digit.appendChild(inner);
+    el.appendChild(digit);
+  }
+  digits = el.querySelectorAll('.flip-digit');
+  for (let i = 0; i < chars.length; i++) {
+    const inner = digits[i].querySelector('.flip-inner');
+    if (inner && inner.textContent !== chars[i]) inner.textContent = chars[i];
+    digits[i].classList.remove('flipping');
+  }
+}
+
+function skitterNoise(template) {
+  const DIGITS = '0123456789';
+  let out = '';
+  for (let i = 0; i < template.length; i++) {
+    const ch = template[i];
+    if (ch >= '0' && ch <= '9') out += DIGITS[(Math.random() * 10) | 0];
+    else out += ch;
+  }
+  return out;
+}
+
+/**
+ * 飞船系统初始化 · Data Skitter
+ * 高频乱码滚动 → 减速 → 锁定真实值
+ * @returns cancel function
+ */
+function runDataSkitter(entries, {
+  duration = 2500,
+  settle = 420,
+  onSettle,
+} = {}) {
+  const list = (entries || []).filter(e => e?.el);
+  if (!list.length) return () => {};
+
+  let rafId = 0;
+  let cancelled = false;
+  let lastTick = 0;
+  const start = performance.now();
+  const endSkitter = start + duration;
+  const endSettle = endSkitter + settle;
+
+  list.forEach(({ el, target }) => {
+    el.classList.add('skittering');
+    const tpl = String(target ?? '0000');
+    setFlipInstant(el, skitterNoise(tpl));
+  });
+
+  function blendToward(template, target, t) {
+    const src = skitterNoise(template);
+    const dst = String(target);
+    const len = Math.max(src.length, dst.length);
+    let out = '';
+    for (let i = 0; i < len; i++) {
+      const a = src[i] ?? '';
+      const b = dst[i] ?? '';
+      if (!b) { out += a; continue; }
+      if (b < '0' || b > '9') { out += b; continue; }
+      out += Math.random() > t ? (a >= '0' && a <= '9' ? a : b) : b;
+    }
+    return out;
+  }
+
+  function frame(now) {
+    if (cancelled) return;
+
+    if (now < endSkitter) {
+      // ~40fps 高频乱码，避免每帧打满主线程
+      if (now - lastTick >= 24) {
+        lastTick = now;
+        list.forEach(({ el, target }) => {
+          setFlipInstant(el, skitterNoise(String(target ?? '0000')));
+        });
+      }
+      rafId = requestAnimationFrame(frame);
+      return;
+    }
+
+    if (now < endSettle) {
+      const t = (now - endSkitter) / settle;
+      const eased = 1 - Math.pow(1 - t, 3);
+      if (now - lastTick >= 32 + eased * 40) {
+        lastTick = now;
+        list.forEach(({ el, target }) => {
+          const tpl = String(target ?? '0000');
+          setFlipInstant(el, blendToward(tpl, tpl, eased));
+        });
+      }
+      rafId = requestAnimationFrame(frame);
+      return;
+    }
+
+    list.forEach(({ el, target }) => {
+      el.classList.remove('skittering');
+      setFlipInstant(el, target ?? '—');
+    });
+    onSettle?.();
+  }
+
+  rafId = requestAnimationFrame(frame);
+
+  return () => {
+    cancelled = true;
+    if (rafId) cancelAnimationFrame(rafId);
+    list.forEach(({ el }) => el.classList.remove('skittering'));
+  };
+}
+
 /** 从 0 快速跳动到目标值 */
 function animateFlipTo(el, target, duration = 1200) {
   const isNum = !isNaN(parseFloat(target));

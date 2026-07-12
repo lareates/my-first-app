@@ -29,7 +29,7 @@ function showScene(name) {
 
   screens[name]?.classList.add('active');
   currentScene = name;
-  if (name !== 'nap') Ambient.start(name);
+  if (name !== 'nap' && name !== 'camp') Ambient.start(name);
 
   BookmarkHint.tryShow(screens[name], cleanupFns);
 
@@ -39,7 +39,11 @@ function showScene(name) {
     return;
   }
 
-  if (name === 'camp') initCamp(cleanupFns);
+  if (name === 'camp') {
+    Ambient.stop();
+    initCamp(cleanupFns);
+    return;
+  }
   if (name === 'focus') initFocus(cleanupFns);
 }
 
