@@ -21,12 +21,14 @@ const NAP_SOUND_LABELS = {
   rain: '春雨车顶',
   stream: '溪水潺潺',
   waves: '潮汐海滨',
+  wind: '窗外微风',
+  fireplace: '壁炉暖火',
 };
 
 const MODE_SOUND_MAP = {
-  meditate: 'rain',
-  breathe: 'stream',
-  sleep: 'waves',
+  meditate: 'woven',
+  breathe: 'woven',
+  sleep: 'woven',
 };
 
 function initNap(cleanupFns) {

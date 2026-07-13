@@ -490,7 +490,7 @@ body.timer-sheet-open { overflow: hidden; }
 #scene-nap .horizon-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.85rem;
   min-width: 0;
   flex: 1;
 }
@@ -503,19 +503,21 @@ body.timer-sheet-open { overflow: hidden; }
 .nap-soundscapes {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
   padding-left: 0.15rem;
 }
 .nap-sound-chip {
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 999px;
-  background: rgba(255,255,255,0.03);
-  color: rgba(207,196,197,0.55);
+  background: rgba(255,255,255,0.04);
+  color: rgba(207,196,197,0.72);
   font-family: var(--font-space);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  padding: 0.35rem 0.7rem;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.15rem;
   cursor: pointer;
   transition: color 0.25s, border-color 0.25s, background 0.25s, box-shadow 0.25s;
   touch-action: manipulation;
@@ -1670,18 +1672,33 @@ body.focus-paywall-open { overflow: hidden; }
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding-bottom: 0.1rem;
+    gap: 0.55rem;
+    padding-bottom: 0.15rem;
   }
   .nap-soundscapes::-webkit-scrollbar { display: none; }
   .nap-sound-chip {
-    font-size: 8px;
-    padding: 0.3rem 0.55rem;
+    font-size: 14px;
+    min-height: 3rem;
+    padding: 0.7rem 1.2rem;
+    flex-shrink: 0;
   }
 }
 @media (min-width: 900px) {
   .bookmark-hint {
     --hint-star-offset: 3.25rem;
     right: 0.75rem;
+  }
+}
+
+/* 车机横屏：声景按钮再放大一档，方便手指点按 */
+@media (orientation: landscape) and (min-width: 900px) {
+  .nap-soundscapes {
+    gap: 0.6rem;
+  }
+  .nap-sound-chip {
+    font-size: 15px;
+    min-height: 3.1rem;
+    padding: 0.75rem 1.35rem;
   }
 }
 

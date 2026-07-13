@@ -11,7 +11,9 @@ const cleanupFns = [];
 initIcons();
 
 ['touchstart', 'click'].forEach(evt => {
-  document.addEventListener(evt, () => AudioEngine.resume(), { once: true, passive: true });
+  document.addEventListener(evt, () => {
+    AudioEngine.resume().then(() => AudioEngine.preloadAllSamples?.());
+  }, { once: true, passive: true });
 });
 
 function showScene(name) {
@@ -22,7 +24,7 @@ function showScene(name) {
   if (name === 'home') {
     screens.home.classList.add('active');
     currentScene = null;
-    AudioEngine.stopAll();
+    AudioEngine.stopAll(); // 内部 2.5s 淡出
     Ambient.start('home');
     return;
   }
