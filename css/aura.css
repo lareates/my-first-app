@@ -522,6 +522,7 @@ body.timer-sheet-open { overflow: hidden; }
   flex-direction: column;
   align-items: stretch;
   gap: 1rem;
+  padding-bottom: 0.5rem;
 }
 .nap-horizon-top {
   display: flex;
@@ -544,12 +545,13 @@ body.timer-sheet-open { overflow: hidden; }
   flex-wrap: nowrap;
   padding-left: 0.15rem;
   padding-right: 2rem;
+  margin-right: -1rem; /* 抵消父级 padding，让滚动区域延伸到右侧边缘 */
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: 0.25rem;
-  mask-image: linear-gradient(to right, #000 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 92%, transparent 100%);
+  padding-bottom: 0.5rem; /* 增加底部 padding 防止被截断 */
+  mask-image: linear-gradient(to right, #000 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 90%, transparent 100%);
 }
 .nap-soundscapes::-webkit-scrollbar {
   display: none;
