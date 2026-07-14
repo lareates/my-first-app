@@ -3,11 +3,11 @@
  * 真实采样 + Web Audio 无缝交叉淡化 / 座舱低通 / 立体声漂移
  */
 const AudioEngine = (() => {
-  const CROSSFADE_SEC = 3;
+  const CROSSFADE_SEC = 3.0;
   const FADE_OUT_SEC = 2.5;
-  const FADE_IN_SEC = 2;
-  const LOOKAHEAD_SEC = 6;
-  const SCHEDULER_MS = 500;
+  const FADE_IN_SEC = 2.0;
+  const LOOKAHEAD_SEC = 30.0; // 提前调度 30 秒，防止车机后台节流
+  const SCHEDULER_MS = 1000;
 
   /** @type {AudioContext|null} */
   let ctx = null;
@@ -127,17 +127,16 @@ const AudioEngine = (() => {
       this.pan = null;
       this.bus = null;
       this.wet = null;
-      this.voices = [];
       this.buffer = null;
       this.active = false;
       this.generation = 0;
       this.nextStart = 0;
-      this.nextVoice = 0;
       this.schedulerId = null;
       this.panLfo = null;
       this.userVolume = 1;
       this.fadeToken = 0;
       this.stopTimer = null;
+      this.scheduledNodes = new Set();
     }
 
     _buildGraph() {
@@ -155,13 +154,6 @@ const AudioEngine = (() => {
       this.wet = ctx.createGain();
       this.wet.gain.value = 0.18;
 
-      this.voices = [0, 1].map(() => {
-        const gain = ctx.createGain();
-        gain.gain.value = 0;
-        gain.connect(this.filter);
-        return { gain, src: null };
-      });
-
       this.filter.connect(this.pan);
       this.pan.connect(this.bus);
       this.bus.connect(master);
@@ -171,12 +163,13 @@ const AudioEngine = (() => {
 
     _teardownGraph() {
       this._stopPanLfo();
-      this.voices.forEach((v) => {
-        try { v.src?.stop(); } catch {}
-        try { v.src?.disconnect(); } catch {}
-        try { v.gain.disconnect(); } catch {}
-        v.src = null;
+      this.scheduledNodes.forEach((node) => {
+        try { node.src?.stop(); } catch {}
+        try { node.src?.disconnect(); } catch {}
+        try { node.gain?.disconnect(); } catch {}
       });
+      this.scheduledNodes.clear();
+
       try { this.filter?.disconnect(); } catch {}
       try { this.pan?.disconnect(); } catch {}
       try { this.wet?.disconnect(); } catch {}
@@ -185,7 +178,6 @@ const AudioEngine = (() => {
       this.pan = null;
       this.wet = null;
       this.bus = null;
-      this.voices = [];
     }
 
     _stopPanLfo() {
@@ -217,21 +209,21 @@ const AudioEngine = (() => {
       }
     }
 
-    _spawnVoice(voiceIndex, when, fadeInSec) {
-      const voice = this.voices[voiceIndex];
-      if (!voice || !this.buffer) return;
+    _spawnVoice(when, fadeInSec) {
+      if (!this.buffer || !this.active) return;
 
-      try { voice.src?.stop(when); } catch {}
-      try { voice.src?.disconnect(); } catch {}
+      const gainNode = ctx.createGain();
+      gainNode.connect(this.filter);
 
       const src = ctx.createBufferSource();
       src.buffer = this.buffer;
       // 严禁 src.loop = true
-      src.connect(voice.gain);
+      src.connect(gainNode);
 
-      const dur = this.buffer.duration;
+      // 扣除 0.15 秒，避免 MP3 尾部空白帧导致音量骤降
+      const dur = Math.max(1, this.buffer.duration - 0.15);
       const xf = Math.min(CROSSFADE_SEC, Math.max(0.5, dur * 0.35));
-      const g = voice.gain.gain;
+      const g = gainNode.gain;
       const t0 = Math.max(when, ctx.currentTime);
 
       g.cancelScheduledValues(t0);
@@ -247,22 +239,30 @@ const AudioEngine = (() => {
       g.linearRampToValueAtTime(0, fadeOutAt + xf);
 
       src.start(t0);
-      src.stop(t0 + dur + 0.05);
-      voice.src = src;
+      src.stop(t0 + dur + 0.1);
+
+      const nodeObj = { src, gain: gainNode };
+      this.scheduledNodes.add(nodeObj);
+
+      // 播放结束后自动清理节点
+      src.onended = () => {
+        this.scheduledNodes.delete(nodeObj);
+        try { src.disconnect(); } catch {}
+        try { gainNode.disconnect(); } catch {}
+      };
     }
 
     _scheduleAhead(gen) {
       if (!this.active || gen !== this.generation || !this.buffer) return;
 
-      const dur = this.buffer.duration;
+      const dur = Math.max(1, this.buffer.duration - 0.15);
       const xf = Math.min(CROSSFADE_SEC, Math.max(0.5, dur * 0.35));
       const horizon = ctx.currentTime + LOOKAHEAD_SEC;
 
       while (this.nextStart < horizon) {
         const fadeIn = this.nextStart <= ctx.currentTime + 0.05 ? 0 : xf;
-        this._spawnVoice(this.nextVoice, this.nextStart, fadeIn);
+        this._spawnVoice(this.nextStart, fadeIn);
         this.nextStart += dur - xf;
-        this.nextVoice = 1 - this.nextVoice;
       }
 
       this.schedulerId = setTimeout(() => this._scheduleAhead(gen), SCHEDULER_MS);
@@ -293,7 +293,6 @@ const AudioEngine = (() => {
       this.bus.gain.setValueAtTime(0, t);
       this.bus.gain.linearRampToValueAtTime(this.userVolume, t + Math.max(0.05, fadeIn));
 
-      this.nextVoice = 0;
       this.nextStart = t;
       this._scheduleAhead(gen);
     }
