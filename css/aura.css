@@ -542,22 +542,11 @@ body.timer-sheet-open { overflow: hidden; }
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   padding-left: 0.15rem;
-  padding-right: 2rem;
-  margin-right: -1rem; /* 抵消父级 padding，让滚动区域延伸到右侧边缘 */
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 0.5rem; /* 增加底部 padding 防止被截断 */
-  mask-image: linear-gradient(to right, #000 90%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 90%, transparent 100%);
-}
-.nap-soundscapes::-webkit-scrollbar {
-  display: none;
+  padding-bottom: 0.25rem;
 }
 .nap-sound-chip {
-  flex-shrink: 0;
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 999px;
   background: rgba(255,255,255,0.04);
@@ -1718,21 +1707,14 @@ body.focus-paywall-open { overflow: hidden; }
     order: 0;
   }
   .nap-soundscapes {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex-wrap: wrap;
     gap: 0.55rem;
-    padding-bottom: 0.5rem;
-    margin-right: -0.875rem;
-    padding-right: 1.5rem;
+    padding-bottom: 0.25rem;
   }
-  .nap-soundscapes::-webkit-scrollbar { display: none; }
   .nap-sound-chip {
     font-size: 14px;
     min-height: 3rem;
     padding: 0.7rem 1.2rem;
-    flex-shrink: 0;
   }
 }
 @media (min-width: 900px) {
