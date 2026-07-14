@@ -93,9 +93,11 @@ function markTheaterMode() {
  * 利用国行特斯拉自带的「腾讯视频」触发剧院模式。
  */
 function enterTeslaTheaterModeChina() {
-  const target = getTheaterReturnUrl() + '&www.1905.com'; // 绕过 1905 的正则校验
-  const redirect1905 = `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(target)}`;
-  const finalUrl = `https://v.qq.com/search_redirect.html?url=${encodeURIComponent(redirect1905)}`;
+  const target = getTheaterReturnUrl();
+  // 利用 s3xy.top 提供的全屏中转服务
+  // 它的原理是：s3xy.top 会下发 cookie，并跳转到 v.qq.com -> 1905.com -> s3xy.top?www.1905.com
+  // 最后 s3xy.top 根据 cookie 将页面重定向回我们的 target URL
+  const finalUrl = `https://s3xy.top/fullscreen/go?gate=${encodeURIComponent(target)}`;
   try { sessionStorage.setItem(THEATER_FLAG, '1'); } catch {}
   location.href = finalUrl;
 }

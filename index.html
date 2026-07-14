@@ -219,7 +219,7 @@
 
     <nav class="aura-horizon">
       <div class="horizon-bar nap-horizon">
-        <div class="horizon-stack">
+        <div class="nap-horizon-top">
           <div class="horizon-modes" id="nap-modes">
             <button type="button" class="horizon-mode active" data-nap-mode="meditate">
               <span class="ico" data-icon="meditate"></span>
@@ -234,26 +234,26 @@
               <span>呼吸</span>
             </button>
           </div>
-          <div class="nap-soundscapes" id="nap-soundscapes" role="group" aria-label="声景选择">
-            <button type="button" class="nap-sound-chip active" data-soundscape="woven">氛围织境</button>
-            <button type="button" class="nap-sound-chip" data-soundscape="rain">春雨车顶</button>
-            <button type="button" class="nap-sound-chip" data-soundscape="stream">溪水潺潺</button>
-            <button type="button" class="nap-sound-chip" data-soundscape="waves">潮汐海滨</button>
-            <button type="button" class="nap-sound-chip" data-soundscape="wind">窗外微风</button>
-            <button type="button" class="nap-sound-chip" data-soundscape="fireplace">壁炉暖火</button>
+          <div class="horizon-controls">
+            <div class="horizon-volume">
+              <span class="ico ico-sm" data-icon="volume"></span>
+              <div class="volume-track">
+                <div class="volume-fill" id="nap-volume-fill" style="width:55%"></div>
+                <input type="range" class="volume-input" id="nap-volume" min="0" max="100" value="55">
+              </div>
+            </div>
+            <button type="button" class="horizon-play" id="nap-play" aria-label="播放">
+              <span class="ico ico-play" data-icon="play" data-play-icon></span>
+            </button>
           </div>
         </div>
-        <div class="horizon-controls">
-          <div class="horizon-volume">
-            <span class="ico ico-sm" data-icon="volume"></span>
-            <div class="volume-track">
-              <div class="volume-fill" id="nap-volume-fill" style="width:55%"></div>
-              <input type="range" class="volume-input" id="nap-volume" min="0" max="100" value="55">
-            </div>
-          </div>
-          <button type="button" class="horizon-play" id="nap-play" aria-label="播放">
-            <span class="ico ico-play" data-icon="play" data-play-icon></span>
-          </button>
+        <div class="nap-soundscapes" id="nap-soundscapes" role="group" aria-label="声景选择">
+          <button type="button" class="nap-sound-chip active" data-soundscape="woven">氛围织境</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="rain">春雨车顶</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="stream">溪水潺潺</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="waves">潮汐海滨</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="wind">窗外微风</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="fireplace">壁炉暖火</button>
         </div>
       </div>
     </nav>

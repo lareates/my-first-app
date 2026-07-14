@@ -519,14 +519,17 @@ body.timer-sheet-open { overflow: hidden; }
 }
 #scene-nap .nap-horizon {
   border-radius: 1.5rem;
-  align-items: flex-end;
-}
-#scene-nap .horizon-stack {
-  display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  min-width: 0;
-  flex: 1;
+  align-items: stretch;
+  gap: 1rem;
+}
+.nap-horizon-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 #scene-nap .horizon-controls {
   display: flex;
@@ -538,10 +541,21 @@ body.timer-sheet-open { overflow: hidden; }
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   padding-left: 0.15rem;
+  padding-right: 2rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.25rem;
+  mask-image: linear-gradient(to right, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 92%, transparent 100%);
+}
+.nap-soundscapes::-webkit-scrollbar {
+  display: none;
 }
 .nap-sound-chip {
+  flex-shrink: 0;
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 999px;
   background: rgba(255,255,255,0.04);
@@ -805,8 +819,8 @@ body.timer-sheet-open { overflow: hidden; }
   flex: min(32vw, 320px);
   align-items: center;
   gap: 0.75rem;
-  margin: 0 1rem;
-  min-width: 180px;
+  margin: 0 0.5rem;
+  min-width: 120px;
 }
 .horizon-volume .ico {
   color: var(--aura-on-surface-variant);
