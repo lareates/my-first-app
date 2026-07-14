@@ -1723,7 +1723,9 @@ body.focus-paywall-open { overflow: hidden; }
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     gap: 0.55rem;
-    padding-bottom: 0.15rem;
+    padding-bottom: 0.5rem;
+    margin-right: -0.875rem;
+    padding-right: 1.5rem;
   }
   .nap-soundscapes::-webkit-scrollbar { display: none; }
   .nap-sound-chip {
