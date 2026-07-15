@@ -2,8 +2,10 @@
 const Ambient = (() => {
   let canvas, ctx, mode = 'home';
   let blobs = [];
+  let stars = [];
   let t0 = 0;
   let unregister = null;
+  let focusEnergy = 0; // 0 = 绝对静夜，1 = 星光呼吸最明显
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function ensureCanvas() {
@@ -25,6 +27,7 @@ const Ambient = (() => {
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    if (mode === 'focus') seedStars();
   }
 
   function makeGlowSprite(radius, hue, alpha) {
@@ -42,18 +45,44 @@ const Ambient = (() => {
     return sprite;
   }
 
+  function seedStars() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const count = reduceMotion ? 48 : 110;
+    stars = Array.from({ length: count }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: 0.5 + Math.random() * 1.4,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.35 + Math.random() * 1.4,
+      base: 0.15 + Math.random() * 0.55,
+    }));
+  }
+
+  function setFocusEnergy(level) {
+    focusEnergy = Math.max(0, Math.min(1, Number(level) || 0));
+  }
+
   function setMode(m) {
     mode = m;
     blobs = [];
+    stars = [];
     const w = window.innerWidth;
     const h = window.innerHeight;
+
+    if (m === 'focus') {
+      seedStars();
+      t0 = performance.now();
+      return;
+    }
+
     const count = reduceMotion ? 2 : m === 'home' ? 2 : 3;
     for (let i = 0; i < count; i++) {
       const blob = {
         x: w * (0.2 + Math.random() * 0.6),
         y: h * (0.2 + Math.random() * 0.6),
         r: Math.min(w, h) * (0.18 + Math.random() * 0.12),
-        hue: m === 'camp' ? 40 : m === 'focus' ? 270 : 250 + i * 20,
+        hue: m === 'camp' ? 40 : 250 + i * 20,
         alpha: m === 'camp' ? 0.08 : 0.11,
         phase: Math.random() * Math.PI * 2,
         speed: 0.2 + Math.random() * 0.25,
@@ -64,8 +93,50 @@ const Ambient = (() => {
     t0 = performance.now();
   }
 
+  function drawFocusStars(now) {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const t = (now - t0) / 1000;
+    const energy = focusEnergy;
+
+    // 暗夜底色：总音量越低越深、越静
+    const lift = 4 + energy * 10;
+    ctx.fillStyle = `rgb(${lift}, ${lift + 1}, ${lift + 4})`;
+    ctx.fillRect(0, 0, w, h);
+
+    // 微弱紫晕，能量高时才显露
+    if (energy > 0.04) {
+      const g = ctx.createRadialGradient(w * 0.5, h * 0.35, 0, w * 0.5, h * 0.4, Math.max(w, h) * 0.55);
+      g.addColorStop(0, `rgba(90, 70, 180, ${0.035 + energy * 0.08})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // 闪烁速度与幅度绑定总音量；近零时近乎静止
+    const twinkleSpeed = 0.05 + energy * 2.4;
+    const twinkleAmp = 0.04 + energy * 0.72;
+
+    stars.forEach((s) => {
+      const pulse = reduceMotion
+        ? s.base * (0.35 + energy * 0.65)
+        : s.base * (0.28 + twinkleAmp * (0.5 + 0.5 * Math.sin(t * s.speed * twinkleSpeed + s.phase)));
+      const a = Math.max(0.02, Math.min(1, pulse * (0.25 + energy * 0.9)));
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(220, 228, 255, ${a})`;
+      ctx.arc(s.x, s.y, s.r * (0.85 + energy * 0.35), 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
   function draw(now) {
     if (!ctx) return;
+
+    if (mode === 'focus') {
+      drawFocusStars(now);
+      return;
+    }
+
     const w = window.innerWidth;
     const h = window.innerHeight;
     const t = (now - t0) / 1000;
@@ -118,7 +189,8 @@ const Ambient = (() => {
   function stop() {
     detachLoop();
     if (canvas) canvas.style.display = 'none';
+    focusEnergy = 0;
   }
 
-  return { start, stop, setMode };
+  return { start, stop, setMode, setFocusEnergy };
 })();

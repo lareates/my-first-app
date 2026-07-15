@@ -851,167 +851,137 @@ const AudioEngine = (() => {
     campPlayer.setVolume(campVolume);
   }
 
-  // ─── Focus：轻量生成床 + 可选雨采样层 ───
-  const focus = {
-    bus: null,
-    rainPlayer: null,
-    layers: { lofi: 0, rain: 0, wiper: 0 },
-    timers: [],
-    nodes: [],
+  // ─── Focus / Oasis：五轨真实采样调音台 ───
+  const OASIS_KEYS = ['rain', 'stream', 'waves', 'wind', 'fireplace'];
+  const oasis = {
+    layers: Object.fromEntries(OASIS_KEYS.map((k) => [k, 0])),
+    players: Object.fromEntries(OASIS_KEYS.map((k) => [k, null])),
+    active: false,
+    lastTickAt: 0,
+    onEnergy: null,
   };
 
-  function noiseBuffer(type = 'pink', seconds = 4) {
-    const c = ensureCtx();
-    const buf = c.createBuffer(2, c.sampleRate * seconds, c.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = buf.getChannelData(ch);
-      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-      for (let i = 0; i < d.length; i++) {
-        const w = Math.random() * 2 - 1;
-        if (type === 'white') {
-          d[i] = w * 0.28;
-        } else {
-          b0 = 0.99886 * b0 + w * 0.0555179;
-          b1 = 0.99332 * b1 + w * 0.0750759;
-          b2 = 0.969 * b2 + w * 0.153852;
-          b3 = 0.8665 * b3 + w * 0.3104856;
-          b4 = 0.55 * b4 + w * 0.5329522;
-          b5 = -0.7616 * b5 - w * 0.016898;
-          d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
-          b6 = w * 0.115926;
-        }
-      }
-    }
-    return buf;
+  function oasisEnergy() {
+    const sum = OASIS_KEYS.reduce((acc, k) => acc + (oasis.layers[k] || 0), 0);
+    return Math.min(1, sum / OASIS_KEYS.length);
   }
 
-  function buildFocusCore() {
-    ensureCtx();
-    const bus = ctx.createGain();
-    bus.gain.value = 0;
-    bus.connect(master);
-    focus.bus = bus;
-    focus.nodes = [];
-    focus.timers = [];
+  function notifyOasisEnergy() {
+    const e = oasisEnergy();
+    try { oasis.onEnergy?.(e); } catch {}
+    try { Ambient?.setFocusEnergy?.(e); } catch {}
+  }
 
-    const chord = [130.81, 164.81, 196, 246.94];
-    chord.forEach((f, i) => {
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.value = f;
-      const g = ctx.createGain();
-      g.gain.value = 0.01 - i * 0.0015;
-      osc.connect(g);
-      g.connect(bus);
-      osc.start();
-      focus.nodes.push(osc);
+  function playFaderClick() {
+    ensureCtx();
+    const now = performance.now();
+    if (now - oasis.lastTickAt < 38) return;
+    oasis.lastTickAt = now;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 2100 + Math.random() * 900;
+
+    const noise = ctx.createBufferSource();
+    const nBuf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * 0.02)), ctx.sampleRate);
+    const data = nBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    noise.buffer = nBuf;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 2200;
+    hp.Q.value = 0.7;
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.028, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.028);
+
+    osc.connect(hp);
+    noise.connect(hp);
+    hp.connect(g);
+    g.connect(master);
+
+    osc.start(t);
+    noise.start(t);
+    osc.stop(t + 0.04);
+    noise.stop(t + 0.04);
+  }
+
+  async function ensureOasisPlayer(key) {
+    if (!SAMPLE_PRESETS[key]) return null;
+    if (!oasis.players[key]) oasis.players[key] = new CrossfadeSamplePlayer();
+    const player = oasis.players[key];
+    if (!player.active) {
+      try {
+        await player.start(key, Math.max(0.001, oasis.layers[key] || 0.001), { fadeIn: 0.8 });
+      } catch (err) {
+        console.warn('[Audio] oasis start failed', key, err);
+        return null;
+      }
+    }
+    return player;
+  }
+
+  async function setOasisLayer(key, value01, { tick = false } = {}) {
+    if (!OASIS_KEYS.includes(key)) return;
+    const v = Math.max(0, Math.min(1, value01));
+    oasis.layers[key] = v;
+    oasis.active = true;
+
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (tick) playFaderClick();
+
+    if (v < 0.008) {
+      const p = oasis.players[key];
+      if (p?.active) p.fadeOut(1.2);
+    } else {
+      const p = await ensureOasisPlayer(key);
+      p?.setVolume(v * 0.72);
+    }
+
+    notifyOasisEnergy();
+  }
+
+  function setOasisLayers(map = {}, { tick = false } = {}) {
+    OASIS_KEYS.forEach((k) => {
+      if (map[k] != null) setOasisLayer(k, map[k], { tick: false });
     });
-
-    const air = ctx.createBufferSource();
-    air.buffer = noiseBuffer('pink', 4);
-    air.loop = true;
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 380;
-    focus.lofiBed = ctx.createGain();
-    focus.lofiBed.gain.value = 0.04;
-    air.connect(lp);
-    lp.connect(focus.lofiBed);
-    focus.lofiBed.connect(bus);
-    air.start();
-    focus.nodes.push(air);
-
-    focus.wiperBed = ctx.createGain();
-    focus.wiperBed.gain.value = 0;
-    focus.wiperBed.connect(bus);
-    const wiper = ctx.createBufferSource();
-    wiper.buffer = noiseBuffer('white', 2);
-    wiper.loop = true;
-    const wf = ctx.createBiquadFilter();
-    wf.type = 'bandpass';
-    wf.frequency.value = 1600;
-    wf.Q.value = 2.5;
-    wiper.connect(wf);
-    wf.connect(focus.wiperBed);
-    wiper.start();
-    focus.nodes.push(wiper);
-
-    function swipe() {
-      if (!focus.bus) return;
-      const t = ctx.currentTime;
-      const base = focus.wiperBed.gain.value;
-      if (base > 0.001) {
-        focus.wiperBed.gain.cancelScheduledValues(t);
-        focus.wiperBed.gain.setValueAtTime(base * 0.2, t);
-        focus.wiperBed.gain.linearRampToValueAtTime(base, t + 0.12);
-        focus.wiperBed.gain.linearRampToValueAtTime(base * 0.2, t + 0.45);
-      }
-      focus.timers.push(setTimeout(swipe, 1100 + Math.random() * 400));
-    }
-    swipe();
+    if (tick) playFaderClick();
+    notifyOasisEnergy();
   }
 
-  function startFocusMix(volumes) {
-    ensureCtx();
-    if (!focus.bus) buildFocusCore();
-    const t = ctx.currentTime;
-    focus.bus.gain.cancelScheduledValues(t);
-    focus.bus.gain.setValueAtTime(focus.bus.gain.value, t);
-    focus.bus.gain.linearRampToValueAtTime(1, t + FADE_IN_SEC);
-    applyFocusVolumes(volumes || focus.layers);
+  function stopOasis({ fade = FADE_OUT_SEC } = {}) {
+    OASIS_KEYS.forEach((k) => {
+      oasis.layers[k] = 0;
+      const p = oasis.players[k];
+      if (!p) return;
+      if (fade <= 0) p.stopImmediate();
+      else p.fadeOut(fade);
+    });
+    oasis.active = false;
+    notifyOasisEnergy();
   }
 
-  async function applyFocusVolumes({ lofi = 70, rain = 0, wiper = 0 } = {}) {
-    focus.layers = { lofi, rain, wiper };
-    if (!focus.bus) return;
-    const t = ctx.currentTime;
-    focus.lofiBed?.gain.setTargetAtTime(lofi / 100 * 0.055, t, 0.2);
-    focus.wiperBed?.gain.setTargetAtTime(wiper / 100 * 0.045, t, 0.2);
+  function onOasisEnergy(fn) {
+    oasis.onEnergy = typeof fn === 'function' ? fn : null;
+  }
 
-    const rainVol = rain / 100 * 0.55;
-    if (rainVol > 0.01) {
-      if (!focus.rainPlayer) focus.rainPlayer = new CrossfadeSamplePlayer();
-      if (!focus.rainPlayer.active) {
-        try {
-          await focus.rainPlayer.start('rain', rainVol, { fadeIn: FADE_IN_SEC });
-        } catch (err) {
-          console.warn('[Audio] focus rain failed', err);
-        }
-      } else {
-        focus.rainPlayer.setVolume(rainVol);
-      }
-    } else if (focus.rainPlayer?.active) {
-      focus.rainPlayer.fadeOut(FADE_OUT_SEC);
-    }
+  // 兼容旧 API 名（场景退出 / stopAll 仍调用）
+  function startFocusMix() {
+    oasis.active = true;
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
   }
 
   function stopFocusMix() {
-    if (!focus.bus || !ctx) {
-      focus.rainPlayer?.stopImmediate();
-      focus.rainPlayer = null;
-      return;
-    }
-    const t = ctx.currentTime;
-    focus.bus.gain.cancelScheduledValues(t);
-    focus.bus.gain.setValueAtTime(focus.bus.gain.value, t);
-    focus.bus.gain.linearRampToValueAtTime(0, t + FADE_OUT_SEC);
-    focus.rainPlayer?.fadeOut(FADE_OUT_SEC);
+    stopOasis({ fade: FADE_OUT_SEC });
+  }
 
-    setTimeout(() => {
-      focus.timers.forEach(clearTimeout);
-      focus.timers = [];
-      focus.nodes.forEach((n) => {
-        try { n.stop?.(); } catch {}
-        try { n.disconnect?.(); } catch {}
-      });
-      focus.nodes = [];
-      try { focus.bus?.disconnect(); } catch {}
-      focus.bus = null;
-      focus.lofiBed = null;
-      focus.wiperBed = null;
-      focus.rainPlayer?.stopImmediate();
-      focus.rainPlayer = null;
-    }, FADE_OUT_SEC * 1000 + 80);
+  function applyFocusVolumes() {
+    /* legacy no-op — Oasis 使用 setOasisLayer */
   }
 
   // ─── 过渡音效 ───
@@ -1115,6 +1085,13 @@ const AudioEngine = (() => {
     startFocusMix,
     stopFocusMix,
     applyFocusVolumes,
+    setOasisLayer,
+    setOasisLayers,
+    stopOasis,
+    playFaderClick,
+    onOasisEnergy,
+    oasisEnergy,
+    OASIS_KEYS,
     playVinylCrackle,
     playSingingBowl,
     playBirdChorus,

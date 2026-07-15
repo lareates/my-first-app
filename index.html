@@ -36,7 +36,7 @@
       <button class="scene-card" data-scene="focus">
         <span class="scene-icon ico ico-scene" data-icon="bolt"></span>
         <span class="scene-label">充电等人</span>
-        <span class="scene-desc">解压时钟 · Lo-Fi 电台</span>
+        <span class="scene-desc">解压时钟 · ASMR 调音台</span>
       </button>
     </nav>
 
@@ -383,7 +383,7 @@
     </nav>
   </section>
 
-  <!-- 场景 3: 充电等人 — 极客数字软装 -->
+  <!-- 场景 3: 充电等人 — ASMR Oasis 调音台 -->
   <section id="scene-focus" class="screen aura-screen focus-zen theme-default" data-focus-theme="default">
     <div class="aura-bg-layer aura-bg-focus active"></div>
     <div class="focus-ripple" id="focus-ripple" aria-hidden="true"></div>
@@ -407,13 +407,13 @@
     </header>
 
     <aside class="aura-meta">
-      <div class="aura-meta-line">FOCUS / ZEN</div>
-      <div class="aura-meta-line">MODE / SOFT CLOCK</div>
-      <div class="aura-meta-line">AUDIO / LO-FI</div>
+      <div class="aura-meta-line">OASIS / ASMR</div>
+      <div class="aura-meta-line">MODE / MIXER</div>
+      <div class="aura-meta-line">AUDIO / NATURE</div>
     </aside>
 
     <main class="focus-zen-main">
-      <p class="focus-theme-preview" id="focus-theme-preview">THEME / DEFAULT · Zen Soft Clock</p>
+      <p class="focus-theme-preview" id="focus-theme-preview">THEME / DEFAULT · Oasis Mixer</p>
       <div class="focus-zen-clock-block">
         <time class="focus-zen-clock" id="focus-clock">00:00</time>
         <span class="focus-zen-date" id="focus-date"></span>
@@ -511,28 +511,49 @@
         </div>
       </section>
 
-      <section class="focus-zen-music" id="panel-music">
-        <div class="focus-zen-music-head">
-          <span class="cell-label">Lo-Fi 混音台</span>
-          <button type="button" class="action-btn small" id="lofi-toggle" aria-pressed="false">播放</button>
+      <section class="oasis-console" id="panel-oasis" aria-label="ASMR 调音台">
+        <div class="oasis-console-head">
+          <span class="cell-label">ASMR 调音台</span>
+          <span class="oasis-energy" id="oasis-energy" aria-live="polite">星空静谧</span>
         </div>
-        <div class="visualizer focus-zen-viz" id="visualizer">
-          <span></span><span></span><span></span><span></span><span></span>
-          <span></span><span></span><span></span><span></span><span></span>
-          <span></span><span></span><span></span><span></span><span></span>
+        <div class="oasis-faders" id="oasis-faders" role="group" aria-label="自然环境推子">
+          <label class="oasis-fader">
+            <span class="oasis-fader-track">
+              <input type="range" class="oasis-slider" id="oasis-rain" data-oasis="rain" min="0" max="100" value="0" orient="vertical" aria-label="雨声">
+              <span class="oasis-fader-fill" id="oasis-rain-fill" style="height:0%"></span>
+            </span>
+            <span class="oasis-fader-label">雨声</span>
+          </label>
+          <label class="oasis-fader">
+            <span class="oasis-fader-track">
+              <input type="range" class="oasis-slider" id="oasis-stream" data-oasis="stream" min="0" max="100" value="0" orient="vertical" aria-label="溪流">
+              <span class="oasis-fader-fill" id="oasis-stream-fill" style="height:0%"></span>
+            </span>
+            <span class="oasis-fader-label">溪流</span>
+          </label>
+          <label class="oasis-fader">
+            <span class="oasis-fader-track">
+              <input type="range" class="oasis-slider" id="oasis-waves" data-oasis="waves" min="0" max="100" value="0" orient="vertical" aria-label="海浪">
+              <span class="oasis-fader-fill" id="oasis-waves-fill" style="height:0%"></span>
+            </span>
+            <span class="oasis-fader-label">海浪</span>
+          </label>
+          <label class="oasis-fader">
+            <span class="oasis-fader-track">
+              <input type="range" class="oasis-slider" id="oasis-wind" data-oasis="wind" min="0" max="100" value="0" orient="vertical" aria-label="风声">
+              <span class="oasis-fader-fill" id="oasis-wind-fill" style="height:0%"></span>
+            </span>
+            <span class="oasis-fader-label">风声</span>
+          </label>
+          <label class="oasis-fader">
+            <span class="oasis-fader-track">
+              <input type="range" class="oasis-slider" id="oasis-fireplace" data-oasis="fireplace" min="0" max="100" value="0" orient="vertical" aria-label="壁炉">
+              <span class="oasis-fader-fill" id="oasis-fireplace-fill" style="height:0%"></span>
+            </span>
+            <span class="oasis-fader-label">壁炉</span>
+          </label>
         </div>
-        <div class="mixer focus-zen-mixer">
-          <label class="mixer-row">
-            <span>Lo-Fi</span><input type="range" id="vol-lofi" min="0" max="100" value="70"><span id="vol-lofi-val">70</span>
-          </label>
-          <label class="mixer-row">
-            <span>暴雨</span><input type="range" id="vol-rain" min="0" max="100" value="0"><span id="vol-rain-val">0</span>
-          </label>
-          <label class="mixer-row">
-            <span>雨刮</span><input type="range" id="vol-wiper" min="0" max="100" value="0"><span id="vol-wiper-val">0</span>
-          </label>
-        </div>
-        <p class="focus-zen-track" id="lofi-track">Chill Beats · 本地合成</p>
+        <p class="oasis-hint" id="oasis-hint">轻推推子 · 叠出你的解压声场</p>
       </section>
     </main>
   </section>

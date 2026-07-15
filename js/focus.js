@@ -5,8 +5,15 @@ let timerInterval = null;
 let timerInitial = 20 * 60;
 let sessionCount = 0;
 let todayMinutes = 0;
-let focusMixOn = false;
 let focusDurationPicker = null;
+
+const OASIS_LABELS = {
+  rain: '雨声',
+  stream: '溪流',
+  waves: '海浪',
+  wind: '风声',
+  fireplace: '壁炉',
+};
 
 function formatTimer(s) {
   const m = Math.floor(Math.abs(s) / 60);
@@ -65,6 +72,7 @@ function initFocus(cleanupFns) {
   FocusTheme.init(screen, cleanupFns);
 
   setFocusStatus('idle');
+  Ambient.setFocusEnergy?.(0);
 
   const stopClock = startClock(() => {
     const now = new Date();
@@ -117,44 +125,56 @@ function initFocus(cleanupFns) {
     setFocusStatus('idle');
   }, { signal: ac.signal });
 
-  const lofiBtn = document.getElementById('lofi-toggle');
-  const viz = document.getElementById('visualizer');
+  // ─── Oasis ASMR 调音台 ───
+  const energyEl = document.getElementById('oasis-energy');
+  const hintEl = document.getElementById('oasis-hint');
+  const lastVals = {};
 
-  function getVolumes() {
-    return {
-      lofi: parseInt(document.getElementById('vol-lofi').value, 10),
-      rain: parseInt(document.getElementById('vol-rain').value, 10),
-      wiper: parseInt(document.getElementById('vol-wiper').value, 10),
-    };
+  function updateEnergyLabel(level) {
+    if (!energyEl) return;
+    if (level < 0.04) energyEl.textContent = '星空静谧';
+    else if (level < 0.35) energyEl.textContent = '星光缓息';
+    else if (level < 0.7) energyEl.textContent = '星河流动';
+    else energyEl.textContent = '星野盛放';
   }
 
-  ['lofi', 'rain', 'wiper'].forEach(name => {
-    const input = document.getElementById(`vol-${name}`);
-    const label = document.getElementById(`vol-${name}-val`);
-    input.addEventListener('input', () => {
-      label.textContent = input.value;
-      if (focusMixOn) AudioEngine.applyFocusVolumes(getVolumes());
+  function syncFaderFill(input) {
+    const fill = document.getElementById(`${input.id}-fill`);
+    if (fill) fill.style.height = `${input.value}%`;
+  }
+
+  document.querySelectorAll('.oasis-slider').forEach((input) => {
+    const key = input.dataset.oasis;
+    lastVals[key] = parseInt(input.value, 10);
+    syncFaderFill(input);
+
+    const onMove = () => {
+      const val = parseInt(input.value, 10);
+      const prev = lastVals[key] ?? 0;
+      const stepped = Math.abs(val - prev) >= 3 || val === 0 || val === 100;
+      lastVals[key] = val;
+      syncFaderFill(input);
+
+      AudioEngine.setOasisLayer(key, val / 100, { tick: stepped });
+      if (hintEl && val > 0) {
+        hintEl.textContent = `${OASIS_LABELS[key] || key} · ${val}%`;
+      }
+    };
+
+    input.addEventListener('input', onMove, { signal: ac.signal });
+    input.addEventListener('change', onMove, { signal: ac.signal });
+    // 车机触控：按下立刻解锁 AudioContext
+    input.addEventListener('pointerdown', () => {
+      AudioEngine.resume?.();
+      AudioEngine.playFaderClick?.();
     }, { signal: ac.signal });
   });
 
-  function syncFocusPlayUI() {
-    lofiBtn.setAttribute('aria-pressed', focusMixOn);
-    lofiBtn.textContent = focusMixOn ? '暂停' : '播放';
-    viz.classList.toggle('playing', focusMixOn);
-  }
-
-  function toggleFocusMix() {
-    focusMixOn = !focusMixOn;
-    if (focusMixOn) {
-      AudioEngine.playVinylCrackle();
-      AudioEngine.startFocusMix(getVolumes());
-    } else {
-      AudioEngine.stopFocusMix();
-    }
-    syncFocusPlayUI();
-  }
-
-  bindCarPlay(lofiBtn, toggleFocusMix);
+  AudioEngine.onOasisEnergy?.((level) => {
+    Ambient.setFocusEnergy?.(level);
+    updateEnergyLabel(level);
+  });
+  updateEnergyLabel(0);
 
   updateTimerDisplay();
   cleanupFns.push(() => {
@@ -162,7 +182,8 @@ function initFocus(cleanupFns) {
     pauseTimer();
     stopClock();
     focusDurationPicker?.destroy();
-    if (focusMixOn) AudioEngine.stopFocusMix();
+    AudioEngine.stopOasis?.({ fade: 1.5 });
+    Ambient.setFocusEnergy?.(0);
   });
 }
 
@@ -188,7 +209,8 @@ function startTimer(sessionEl) {
         if (wasPomodoro) {
           timerSeconds = 5 * 60;
           timerInitial = 5 * 60;
-          document.getElementById('lofi-track').textContent = '☕ 休息 5 分钟';
+          const hint = document.getElementById('oasis-hint');
+          if (hint) hint.textContent = '☕ 休息 5 分钟 · 推子可继续轻放';
           updateTimerDisplay();
         }
       }
@@ -215,7 +237,8 @@ function resetTimer() {
   } else if (timerMode === 'pomodoro') {
     timerSeconds = 25 * 60;
     timerInitial = 25 * 60;
-    document.getElementById('lofi-track').textContent = 'Chill Beats · 本地合成';
+    const hint = document.getElementById('oasis-hint');
+    if (hint) hint.textContent = '轻推推子 · 叠出你的解压声场';
   } else {
     const activeMin = focusDurationPicker?.getMinutes() ?? 20;
     timerInitial = activeMin * 60;
