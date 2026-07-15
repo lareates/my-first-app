@@ -1,7 +1,8 @@
 /** 特斯拉 / 车机浏览器音频解锁 + 剧院模式（Theater Mode） */
 const APP_CANONICAL = 'https://lareates.github.io/my-first-app/';
 const THEATER_FLAG = 'aetheris-theater';
-const S3XY_HELPER = 'https://s3xy.top';
+/** 国行全屏跳板：须为「无路径」根站，才能通过 1905 校验（与 s3xy.top 同理） */
+const THEATER_BOUNCE_ORIGIN = 'https://lareates.github.io';
 
 async function unlockAndPlay(playFn) {
   try {
@@ -39,12 +40,12 @@ function bindCarPlay(btn, toggleFn) {
 }
 
 /**
- * 原理说明（与 s3xy / Fullscreen Tesla / testube 同类）：
- * - 车机顶部白色地址栏是系统浏览器 chrome，网页 JS / requestFullscreen 藏不掉
- * - 必须先进入特斯拉「剧院模式 / Theater Mode」（由受信任的媒体站流量触发）
- * - 海外常见：https://www.youtube.com/redirect?q=<目标站>
- * - 国内常见：先用 s3xy.top「跳转全屏」进入剧院壳，再在助手地址栏打开目标站
- *   （助手本质是：触发剧院模式后的自建全屏浏览器壳，不是对本站注入魔法）
+ * 原理说明（与 s3xy / kylehe 博客同类，不经过 s3xy.top）：
+ * - 车机顶部白色地址栏是系统 chrome，网页 JS 藏不掉
+ * - 国行：腾讯视频 search_redirect → 1905 open redirect → 回流目标站
+ * - 1905 校验很粗暴：取「// 之后到第一个 /」的字符串，需以 1905.com 等结尾
+ * - 因此目标必须是「根域名 + ?…&www.1905.com」（不能带 /my-first-app/ 路径）
+ * - s3xy 能回去是因为它自己就是根域名；我们用 lareates.github.io 根站做跳板再进 App
  */
 function getAppUrl() {
   try {
@@ -66,6 +67,16 @@ function getTheaterReturnUrl() {
   }
 }
 
+/**
+ * 构造能通过 1905 校验的回流地址（与 s3xy 完全同型）：
+ *   https://lareates.github.io?www.1905.com
+ * 不能带 /my-first-app/ 路径，否则 1905 会把你踢回电影网首页。
+ * 根站 theater-root/index.html 再 302 到真正的 App。
+ */
+function getChinaTheaterBounceUrl() {
+  return `${THEATER_BOUNCE_ORIGIN}?www.1905.com`;
+}
+
 function isTheaterMode() {
   try {
     if (sessionStorage.getItem(THEATER_FLAG) === '1') return true;
@@ -73,7 +84,12 @@ function isTheaterMode() {
   const params = new URLSearchParams(location.search);
   if (params.get('theater') === '1') return true;
   const ref = document.referrer || '';
-  return ref.startsWith('https://www.youtube.com/') || ref.startsWith('https://youtube.com/');
+  return (
+    ref.startsWith('https://www.youtube.com/') ||
+    ref.startsWith('https://youtube.com/') ||
+    ref.includes('1905.com') ||
+    ref.includes('v.qq.com')
+  );
 }
 
 function markTheaterMode() {
@@ -89,15 +105,15 @@ function markTheaterMode() {
 }
 
 /**
- * 国内：腾讯视频 redirect → 1905.com redirect → 回流本站
- * 利用国行特斯拉自带的「腾讯视频」触发剧院模式。
+ * 国内：与 s3xy「跳转全屏」同一链路，但落地页是我们自己的站
+ * 腾讯视频 → 1905 → lareates.github.io 跳板 → my-first-app（全屏态）
  */
 function enterTeslaTheaterModeChina() {
-  const target = getTheaterReturnUrl();
-  // 利用 s3xy.top 提供的全屏中转服务
-  // 它的原理是：s3xy.top 会下发 cookie，并跳转到 v.qq.com -> 1905.com -> s3xy.top?www.1905.com
-  // 最后 s3xy.top 根据 cookie 将页面重定向回我们的 target URL
-  const finalUrl = `https://s3xy.top/fullscreen/go?gate=${encodeURIComponent(target)}`;
+  // 编码方式对齐 s3xy：外层 url= 做一次 encode，避免查询串被截断；
+  // 同时保持「腾讯视频 → 1905 → 自己的根站」自动跳转（白名单内无需「确认前往」）。
+  const bounce = getChinaTheaterBounceUrl();
+  const redirect1905 = `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(bounce)}`;
+  const finalUrl = `https://v.qq.com/search_redirect.html?url=${encodeURIComponent(redirect1905)}`;
   try { sessionStorage.setItem(THEATER_FLAG, '1'); } catch {}
   location.href = finalUrl;
 }
@@ -109,19 +125,16 @@ function enterTeslaTheaterModeViaYouTube() {
   location.href = `https://www.youtube.com/redirect?q=${encodeURIComponent(target)}`;
 }
 
-
 function initTheaterModeUi() {
   if (isTheaterMode()) markTheaterMode();
 
-  // 绑定所有场景右上角的剧院模式按钮
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.aura-theater-btn');
     if (!btn) return;
-    
+
     e.preventDefault();
     const type = btn.dataset.theater;
-    
-    // 保持按钮状态不变，只做跳转
+
     if (type === 'cn') {
       enterTeslaTheaterModeChina();
     } else if (type === 'yt') {

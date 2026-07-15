@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aetheris · 全屏跳板</title>
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #0a0b0d;
+      color: #cfc4c5;
+      font-family: system-ui, sans-serif;
+      display: grid;
+      place-items: center;
+    }
+    p { opacity: 0.6; font-size: 14px; letter-spacing: 0.08em; }
+  </style>
+</head>
+<body>
+  <p>正在进入全屏净界…</p>
+  <script>
+    (function () {
+      // 发布到 https://lareates.github.io/ 根站后，作为 1905 回流跳板
+      // 目标应用：https://lareates.github.io/my-first-app/
+      var APP = 'https://lareates.github.io/my-first-app/?theater=1';
+      try {
+        var params = new URLSearchParams(location.search);
+        var to = params.get('to');
+        if (to && to.charAt(0) === '/') {
+          APP = location.origin + to;
+          if (APP.indexOf('theater=') === -1) {
+            APP += (APP.indexOf('?') === -1 ? '?' : '&') + 'theater=1';
+          }
+        }
+      } catch (e) {}
+      location.replace(APP);
+    })();
+  </script>
+</body>
+</html>
