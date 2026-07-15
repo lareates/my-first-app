@@ -99,12 +99,58 @@ const AudioEngine = (() => {
     if (bufferLoading.has(url)) return bufferLoading.get(url);
 
     const promise = (async () => {
-      const res = await fetch(url);
+      const controller = new AbortController();
+      const fetchTimer = setTimeout(() => controller.abort(), 15000);
+      
+      const res = await fetch(url, { signal: controller.signal }).finally(() => clearTimeout(fetchTimer));
       if (!res.ok) throw new Error(`[Audio] failed to load ${url}: ${res.status}`);
       const raw = await res.arrayBuffer();
-      // Safari 需要拷贝一份再 decode
       const copy = raw.slice(0);
-      const buf = await ctx.decodeAudioData(copy);
+
+      // 兼容新老浏览器，并加入 8 秒超时防止 decodeAudioData 在车机上永久挂起
+      const buf = await new Promise((resolve, reject) => {
+        let isDone = false;
+        const timer = setTimeout(() => {
+          if (!isDone) {
+            isDone = true;
+            reject(new Error(`[Audio] decodeAudioData timeout for ${url}`));
+          }
+        }, 8000);
+
+        try {
+          const p = ctx.decodeAudioData(
+            copy,
+            (decoded) => {
+              if (isDone) return;
+              isDone = true;
+              clearTimeout(timer);
+              resolve(decoded);
+            },
+            (err) => {
+              if (isDone) return;
+              isDone = true;
+              clearTimeout(timer);
+              reject(err);
+            }
+          );
+          if (p && typeof p.catch === 'function') {
+            p.catch((err) => {
+              if (isDone) return;
+              isDone = true;
+              clearTimeout(timer);
+              reject(err);
+            });
+          }
+        } catch (err) {
+          if (isDone) return;
+          isDone = true;
+          clearTimeout(timer);
+          reject(err);
+        }
+      });
+
+      if (!buf) throw new Error(`[Audio] decoded buffer is null for ${url}`);
+
       bufferCache.set(url, buf);
       bufferLoading.delete(url);
       return buf;
@@ -273,7 +319,13 @@ const AudioEngine = (() => {
       if (!preset) throw new Error(`[Audio] unknown preset ${presetKey}`);
 
       ensureCtx();
-      if (ctx.state === 'suspended') await ctx.resume();
+      if (ctx.state === 'suspended') {
+        // 防止在非用户手势上下文中 await ctx.resume() 永久挂起
+        await Promise.race([
+          ctx.resume(),
+          new Promise(r => setTimeout(r, 500))
+        ]).catch(() => {});
+      }
 
       this.stopImmediate();
       this._buildGraph();
@@ -717,6 +769,11 @@ const AudioEngine = (() => {
     napMode = mode;
     napVolume = volume / 100;
 
+    // 立即在用户手势上下文中尝试唤醒 AudioContext，防止在 fadeOut 之后唤醒导致浏览器拦截或挂起
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
     napSwitchChain = napSwitchChain
       .catch(() => {})
       .then(async () => {
@@ -761,6 +818,11 @@ const AudioEngine = (() => {
   function startCampAudio(mode = 'stars', volume = 50) {
     const key = CAMP_SAMPLE_MAP[mode] || 'wind';
     campVolume = volume / 100;
+
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
     campSwitchChain = campSwitchChain
       .catch(() => {})
       .then(async () => {
