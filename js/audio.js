@@ -1036,26 +1036,44 @@ const AudioEngine = (() => {
   function playBirdChorus() {
     const c = ensureCtx();
     const t = c.currentTime;
-    const birds = [
-      { f: 2800, t: 0, dur: 0.12 },
-      { f: 3200, t: 0.35, dur: 0.1 },
-      { f: 2400, t: 0.7, dur: 0.14 },
-      { f: 3600, t: 1.1, dur: 0.08 },
-      { f: 2900, t: 1.6, dur: 0.11 },
+    const totalSec = 10;
+    // 10 秒内疏密有致的鸟鸣：短促清脆 chirp，穿插间歇，避免连成一片噪音
+    const motifs = [
+      [2800, 3200, 2600],
+      [3400, 2900],
+      [2400, 3100, 3600, 3000],
+      [2700, 3300],
+      [3500, 2800, 3100],
+      [2500, 3000],
+      [3200, 2700, 3400],
+      [2900, 3600],
     ];
-    birds.forEach((b) => {
-      const osc = c.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(b.f, t + b.t);
-      osc.frequency.exponentialRampToValueAtTime(b.f * 0.85, t + b.t + b.dur);
-      const g = c.createGain();
-      g.gain.setValueAtTime(0, t + b.t);
-      g.gain.linearRampToValueAtTime(0.045, t + b.t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, t + b.t + b.dur);
-      osc.connect(g);
-      g.connect(master);
-      osc.start(t + b.t);
-      osc.stop(t + b.t + b.dur + 0.05);
+    let cursor = 0.15;
+    motifs.forEach((phrase, pi) => {
+      phrase.forEach((f, i) => {
+        const start = t + cursor + i * (0.16 + Math.random() * 0.08);
+        const dur = 0.09 + Math.random() * 0.07;
+        const osc = c.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, start);
+        osc.frequency.exponentialRampToValueAtTime(f * (0.82 + Math.random() * 0.08), start + dur);
+        const g = c.createGain();
+        const peak = 0.028 + Math.random() * 0.018;
+        g.gain.setValueAtTime(0.0001, start);
+        g.gain.exponentialRampToValueAtTime(peak, start + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        const pan = c.createStereoPanner();
+        pan.pan.value = (Math.random() * 2 - 1) * 0.55;
+        osc.connect(g);
+        g.connect(pan);
+        pan.connect(master);
+        osc.start(start);
+        osc.stop(start + dur + 0.04);
+      });
+      // 短语间隔：让整段大致铺满 10 秒
+      const gap = 0.55 + (pi % 3) * 0.25 + Math.random() * 0.35;
+      cursor += phrase.length * 0.22 + gap;
+      if (cursor > totalSec - 0.4) cursor = totalSec - 0.35;
     });
   }
 

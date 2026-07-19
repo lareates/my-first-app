@@ -259,7 +259,6 @@ function initNap(cleanupFns) {
     requestAnimationFrame(() => dawnOverlay?.classList.add('active'));
 
     setTimeout(() => AudioEngine.playBirdChorus(), 2000);
-    setTimeout(() => AudioEngine.playBirdChorus(), 4500);
   }
 
   function resetWakeState() {
