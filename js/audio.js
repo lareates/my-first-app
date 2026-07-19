@@ -30,60 +30,70 @@ const AudioEngine = (() => {
       url: 'assets/audio/rain.mp3',
       lowpass: 1100,
       panDrift: true,
+      gain: 1.0,
       label: 'rain',
     },
     stream: {
       url: 'assets/audio/river.mp3',
       lowpass: 800,
       panDrift: false,
+      gain: 1.85,
       label: 'river',
     },
     waves: {
       url: 'assets/audio/waves.mp3',
       lowpass: 550,
       panDrift: true,
+      gain: 1.85,
       label: 'waves',
     },
     wind: {
       url: 'assets/audio/wind.mp3',
       lowpass: 400,
       panDrift: true,
+      gain: 0.71,
       label: 'wind',
     },
     fireplace: {
       url: 'assets/audio/fireplace.mp3',
       lowpass: 1400,
       panDrift: false,
+      gain: 1.17,
       label: 'fireplace',
     },
     birds: {
       url: 'assets/audio/birds.mp3',
       lowpass: 1500,
       panDrift: true,
+      gain: 1.85,
       label: 'birds',
     },
     meditation1: {
       url: 'assets/audio/meditation1.mp3',
       lowpass: 900,
       panDrift: true,
+      gain: 1.02,
       label: 'meditation1',
     },
     meditation2: {
       url: 'assets/audio/meditation2.mp3',
       lowpass: 700,
       panDrift: true,
+      gain: 0.55,
       label: 'meditation2',
     },
     soundbath: {
       url: 'assets/audio/soundbath.mp3',
       lowpass: 1000,
       panDrift: true,
+      gain: 0.78,
       label: 'soundbath',
     },
     tibetan: {
       url: 'assets/audio/tibetan.mp3',
       lowpass: 800,
       panDrift: true,
+      gain: 0.76,
       label: 'tibetan',
     },
   };
@@ -210,9 +220,15 @@ const AudioEngine = (() => {
       this.schedulerId = null;
       this.panLfo = null;
       this.userVolume = 1;
+      this.presetGain = 1;
       this.fadeToken = 0;
       this.stopTimer = null;
       this.scheduledNodes = new Set();
+    }
+
+    _effectiveVolume() {
+      // 允许轻度 >1，用于抬升偏安静的采样；上限避免削波
+      return Math.max(0, Math.min(1.85, this.userVolume * (this.presetGain || 1)));
     }
 
     _buildGraph() {
@@ -362,6 +378,7 @@ const AudioEngine = (() => {
 
       this.buffer = await loadBuffer(preset.url);
       this.filter.frequency.value = preset.lowpass;
+      this.presetGain = typeof preset.gain === 'number' ? preset.gain : 1;
       this.userVolume = Math.max(0, Math.min(1, volume));
       this.active = true;
       this.generation += 1;
@@ -373,7 +390,7 @@ const AudioEngine = (() => {
       const t = ctx.currentTime;
       this.bus.gain.cancelScheduledValues(t);
       this.bus.gain.setValueAtTime(0, t);
-      this.bus.gain.linearRampToValueAtTime(this.userVolume, t + Math.max(0.05, fadeIn));
+      this.bus.gain.linearRampToValueAtTime(this._effectiveVolume(), t + Math.max(0.05, fadeIn));
 
       this.nextStart = t;
       this._scheduleAhead(gen);
@@ -384,7 +401,7 @@ const AudioEngine = (() => {
       if (!this.bus || !ctx) return;
       const t = ctx.currentTime;
       this.bus.gain.cancelScheduledValues(t);
-      this.bus.gain.setTargetAtTime(this.userVolume, t, 0.12);
+      this.bus.gain.setTargetAtTime(this._effectiveVolume(), t, 0.12);
     }
 
     /**
@@ -438,7 +455,7 @@ const AudioEngine = (() => {
   const napPlayer = new CrossfadeSamplePlayer();
   let napPreset = 'woven';
   let napMode = 'meditate';
-  let napVolume = 0.55;
+  let napVolume = 0.77;
   let napSwitchChain = Promise.resolve();
 
   const woven = {
@@ -793,7 +810,7 @@ const AudioEngine = (() => {
     }
   }
 
-  function startNapAudio(mode = 'meditate', volume = 55, soundscape = 'woven') {
+  function startNapAudio(mode = 'meditate', volume = 77, soundscape = 'woven') {
     const sc = NAP_SOUNDSCAPES.includes(soundscape) ? soundscape : 'woven';
     napPreset = sc;
     napMode = mode;
@@ -842,10 +859,10 @@ const AudioEngine = (() => {
 
   // ─── Camp 场景（采样） ───
   const campPlayer = new CrossfadeSamplePlayer();
-  let campVolume = 0.5;
+  let campVolume = 0.7;
   let campSwitchChain = Promise.resolve();
 
-  function startCampAudio(mode = 'stars', volume = 50) {
+  function startCampAudio(mode = 'stars', volume = 70) {
     const key = CAMP_SAMPLE_MAP[mode] || 'wind';
     campVolume = volume / 100;
 
@@ -971,7 +988,7 @@ const AudioEngine = (() => {
       if (p?.active) p.fadeOut(1.2);
     } else {
       const p = await ensureOasisPlayer(key);
-      p?.setVolume(v * 0.72);
+      p?.setVolume(v * 1.0);
     }
 
     notifyOasisEnergy();
