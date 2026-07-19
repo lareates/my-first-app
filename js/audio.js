@@ -1037,21 +1037,25 @@ const AudioEngine = (() => {
     const c = ensureCtx();
     const t = c.currentTime;
     const totalSec = 10;
-    // 10 秒内疏密有致的鸟鸣：短促清脆 chirp，穿插间歇，避免连成一片噪音
-    const motifs = [
+    // 约 10 秒：多组短促 chirp，左右轻微偏移，疏密交替
+    const phrases = [
       [2800, 3200, 2600],
       [3400, 2900],
-      [2400, 3100, 3600, 3000],
+      [2400, 3100, 3600],
       [2700, 3300],
       [3500, 2800, 3100],
       [2500, 3000],
       [3200, 2700, 3400],
       [2900, 3600],
+      [3000, 2550],
+      [3150, 3450, 2750],
     ];
-    let cursor = 0.15;
-    motifs.forEach((phrase, pi) => {
+    const slot = totalSec / phrases.length;
+    phrases.forEach((phrase, pi) => {
+      const phraseStart = 0.2 + pi * slot + (Math.random() * 0.2 - 0.05);
       phrase.forEach((f, i) => {
-        const start = t + cursor + i * (0.16 + Math.random() * 0.08);
+        const start = t + phraseStart + i * (0.15 + Math.random() * 0.07);
+        if (start - t > totalSec) return;
         const dur = 0.09 + Math.random() * 0.07;
         const osc = c.createOscillator();
         osc.type = 'sine';
@@ -1070,10 +1074,6 @@ const AudioEngine = (() => {
         osc.start(start);
         osc.stop(start + dur + 0.04);
       });
-      // 短语间隔：让整段大致铺满 10 秒
-      const gap = 0.55 + (pi % 3) * 0.25 + Math.random() * 0.35;
-      cursor += phrase.length * 0.22 + gap;
-      if (cursor > totalSec - 0.4) cursor = totalSec - 0.35;
     });
   }
 
