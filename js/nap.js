@@ -23,6 +23,11 @@ const NAP_SOUND_LABELS = {
   waves: '潮汐海滨',
   wind: '窗外微风',
   fireplace: '壁炉暖火',
+  birds: '深林鸟鸣',
+  meditation1: '心灵修复',
+  meditation2: '星空风吟',
+  soundbath: '高保真音疗',
+  tibetan: '颂钵音疗',
 };
 
 const MODE_SOUND_MAP = {

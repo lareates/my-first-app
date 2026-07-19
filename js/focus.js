@@ -13,6 +13,11 @@ const OASIS_LABELS = {
   waves: '海浪',
   wind: '风声',
   fireplace: '壁炉',
+  birds: '鸟鸣',
+  meditation1: '心灵',
+  meditation2: '星风',
+  soundbath: '音疗',
+  tibetan: '颂钵',
 };
 
 function formatTimer(s) {

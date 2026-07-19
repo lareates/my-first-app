@@ -56,6 +56,36 @@ const AudioEngine = (() => {
       panDrift: false,
       label: 'fireplace',
     },
+    birds: {
+      url: 'assets/audio/birds.mp3',
+      lowpass: 1500,
+      panDrift: true,
+      label: 'birds',
+    },
+    meditation1: {
+      url: 'assets/audio/meditation1.mp3',
+      lowpass: 900,
+      panDrift: true,
+      label: 'meditation1',
+    },
+    meditation2: {
+      url: 'assets/audio/meditation2.mp3',
+      lowpass: 700,
+      panDrift: true,
+      label: 'meditation2',
+    },
+    soundbath: {
+      url: 'assets/audio/soundbath.mp3',
+      lowpass: 1000,
+      panDrift: true,
+      label: 'soundbath',
+    },
+    tibetan: {
+      url: 'assets/audio/tibetan.mp3',
+      lowpass: 800,
+      panDrift: true,
+      label: 'tibetan',
+    },
   };
 
   const NAP_SOUNDSCAPES = ['woven', ...Object.keys(SAMPLE_PRESETS)];
@@ -852,7 +882,8 @@ const AudioEngine = (() => {
   }
 
   // ─── Focus / Oasis：五轨真实采样调音台 ───
-  const OASIS_KEYS = ['rain', 'stream', 'waves', 'wind', 'fireplace'];
+  // 与 SAMPLE_PRESETS 同步：新增采样自动进入 Oasis 调音台
+  const OASIS_KEYS = Object.keys(SAMPLE_PRESETS);
   const oasis = {
     layers: Object.fromEntries(OASIS_KEYS.map((k) => [k, 0])),
     players: Object.fromEntries(OASIS_KEYS.map((k) => [k, null])),
