@@ -9,6 +9,27 @@ const AudioEngine = (() => {
   const LOOKAHEAD_SEC = 30.0; // 提前调度 30 秒，防止车机后台节流
   const SCHEDULER_MS = 1000;
 
+  /** 21 款特斯拉等低性能车机：流媒体循环，避免 decodeAudioData 爆内存 */
+  function isLowPowerDevice() {
+    try {
+      const flag = localStorage.getItem('aetheris-low-power');
+      if (flag === '1') return true;
+      if (flag === '0') return false;
+    } catch { /* ignore */ }
+    const ua = navigator.userAgent || '';
+    if (/Tesla|QtCarBrowser|QtWebEngine/i.test(ua)) return true;
+    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) return true;
+    if (navigator.deviceMemory && navigator.deviceMemory <= 4) return true;
+    return false;
+  }
+
+  const LOW_POWER = isLowPowerDevice();
+  const ACTIVE_LOOKAHEAD_SEC = LOW_POWER ? 8 : LOOKAHEAD_SEC;
+  const ACTIVE_SCHEDULER_MS = LOW_POWER ? 2000 : SCHEDULER_MS;
+  const MAX_BUFFER_CACHE = LOW_POWER ? 2 : 8;
+  const DECODE_TIMEOUT_MS = LOW_POWER ? 12000 : 8000;
+  const FETCH_TIMEOUT_MS = LOW_POWER ? 20000 : 15000;
+
   /** @type {AudioContext|null} */
   let ctx = null;
   /** @type {GainNode|null} */
@@ -62,35 +83,35 @@ const AudioEngine = (() => {
       label: 'fireplace',
     },
     birds: {
-      url: 'assets/audio/birds.mp3',
+      url: 'assets/audio/birds.m4a',
       lowpass: 1500,
       panDrift: true,
       gain: 1.85,
       label: 'birds',
     },
     meditation1: {
-      url: 'assets/audio/meditation1.mp3',
+      url: 'assets/audio/meditation1.m4a',
       lowpass: 900,
       panDrift: true,
       gain: 1.02,
       label: 'meditation1',
     },
     meditation2: {
-      url: 'assets/audio/meditation2.mp3',
+      url: 'assets/audio/meditation2.m4a',
       lowpass: 700,
       panDrift: true,
       gain: 0.55,
       label: 'meditation2',
     },
     soundbath: {
-      url: 'assets/audio/soundbath.mp3',
+      url: 'assets/audio/soundbath.m4a',
       lowpass: 1000,
       panDrift: true,
       gain: 0.78,
       label: 'soundbath',
     },
     tibetan: {
-      url: 'assets/audio/tibetan.mp3',
+      url: 'assets/audio/tibetan.m4a',
       lowpass: 800,
       panDrift: true,
       gain: 0.76,
@@ -133,6 +154,13 @@ const AudioEngine = (() => {
     return buf;
   }
 
+  function evictBufferCache() {
+    while (bufferCache.size > MAX_BUFFER_CACHE) {
+      const oldest = bufferCache.keys().next().value;
+      bufferCache.delete(oldest);
+    }
+  }
+
   async function loadBuffer(url) {
     ensureCtx();
     if (bufferCache.has(url)) return bufferCache.get(url);
@@ -140,14 +168,13 @@ const AudioEngine = (() => {
 
     const promise = (async () => {
       const controller = new AbortController();
-      const fetchTimer = setTimeout(() => controller.abort(), 15000);
-      
+      const fetchTimer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
       const res = await fetch(url, { signal: controller.signal }).finally(() => clearTimeout(fetchTimer));
       if (!res.ok) throw new Error(`[Audio] failed to load ${url}: ${res.status}`);
       const raw = await res.arrayBuffer();
       const copy = raw.slice(0);
 
-      // 兼容新老浏览器，并加入 8 秒超时防止 decodeAudioData 在车机上永久挂起
       const buf = await new Promise((resolve, reject) => {
         let isDone = false;
         const timer = setTimeout(() => {
@@ -155,7 +182,7 @@ const AudioEngine = (() => {
             isDone = true;
             reject(new Error(`[Audio] decodeAudioData timeout for ${url}`));
           }
-        }, 8000);
+        }, DECODE_TIMEOUT_MS);
 
         try {
           const p = ctx.decodeAudioData(
@@ -192,6 +219,7 @@ const AudioEngine = (() => {
       if (!buf) throw new Error(`[Audio] decoded buffer is null for ${url}`);
 
       bufferCache.set(url, buf);
+      evictBufferCache();
       bufferLoading.delete(url);
       return buf;
     })().catch((err) => {
@@ -349,7 +377,7 @@ const AudioEngine = (() => {
 
       const dur = Math.max(1, this.buffer.duration - 0.15);
       const xf = Math.min(CROSSFADE_SEC, Math.max(0.5, dur * 0.35));
-      const horizon = ctx.currentTime + LOOKAHEAD_SEC;
+      const horizon = ctx.currentTime + ACTIVE_LOOKAHEAD_SEC;
 
       while (this.nextStart < horizon) {
         const fadeIn = this.nextStart <= ctx.currentTime + 0.05 ? 0 : xf;
@@ -357,7 +385,7 @@ const AudioEngine = (() => {
         this.nextStart += dur - xf;
       }
 
-      this.schedulerId = setTimeout(() => this._scheduleAhead(gen), SCHEDULER_MS);
+      this.schedulerId = setTimeout(() => this._scheduleAhead(gen), ACTIVE_SCHEDULER_MS);
     }
 
     async start(presetKey, volume = 1, { fadeIn = FADE_IN_SEC } = {}) {
@@ -451,8 +479,210 @@ const AudioEngine = (() => {
     }
   }
 
+  /**
+   * 车机轻量播放器：HTML5 Audio 循环 + MediaElementSource
+   * 不整段 decode 到 PCM，避免阿童木浏览器 OOM / 崩溃
+   */
+  class MediaLoopPlayer {
+    constructor() {
+      this.el = null;
+      this.source = null;
+      this.filter = null;
+      this.pan = null;
+      this.bus = null;
+      this.wet = null;
+      this.active = false;
+      this.presetGain = 1;
+      this.userVolume = 1;
+      this.fadeToken = 0;
+      this.stopTimer = null;
+      this.panLfo = null;
+      this.presetKey = null;
+    }
+
+    _effectiveVolume() {
+      return Math.max(0, Math.min(1.85, this.userVolume * (this.presetGain || 1)));
+    }
+
+    _buildGraph() {
+      ensureCtx();
+      this.bus = ctx.createGain();
+      this.bus.gain.value = 0;
+      this.filter = ctx.createBiquadFilter();
+      this.filter.type = 'lowpass';
+      this.filter.Q.value = 0.55;
+      this.pan = ctx.createStereoPanner();
+      this.pan.pan.value = 0;
+      this.wet = ctx.createGain();
+      this.wet.gain.value = LOW_POWER ? 0.1 : 0.18;
+      this.filter.connect(this.pan);
+      this.pan.connect(this.bus);
+      this.bus.connect(master);
+      this.pan.connect(this.wet);
+      this.wet.connect(reverb);
+    }
+
+    _stopPanLfo() {
+      if (this.panLfo) {
+        try { this.panLfo.stop(); } catch {}
+        try { this.panLfo.disconnect(); } catch {}
+        this.panLfo = null;
+      }
+    }
+
+    _startPanDrift() {
+      if (LOW_POWER) return;
+      this._stopPanLfo();
+      const period = 15 + Math.random() * 5;
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 1 / period;
+      const depth = ctx.createGain();
+      depth.gain.value = 0.25;
+      lfo.connect(depth);
+      depth.connect(this.pan.pan);
+      lfo.start();
+      this.panLfo = lfo;
+    }
+
+    _waitForMedia(el, timeoutMs = 15000) {
+      return new Promise((resolve, reject) => {
+        if (el.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+          resolve();
+          return;
+        }
+        let done = false;
+        const finish = (fn, arg) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          el.removeEventListener('canplaythrough', onReady);
+          el.removeEventListener('loadeddata', onReady);
+          el.removeEventListener('error', onErr);
+          fn(arg);
+        };
+        const onReady = () => finish(resolve);
+        const onErr = () => finish(reject, new Error('[Audio] media load error'));
+        const timer = setTimeout(() => finish(reject, new Error('[Audio] media load timeout')), timeoutMs);
+        el.addEventListener('canplaythrough', onReady, { once: true });
+        el.addEventListener('loadeddata', onReady, { once: true });
+        el.addEventListener('error', onErr, { once: true });
+      });
+    }
+
+    _teardownMedia() {
+      this._stopPanLfo();
+      if (this.el) {
+        try { this.el.pause(); } catch {}
+        try { this.el.removeAttribute('src'); this.el.load(); } catch {}
+        this.el = null;
+      }
+      try { this.source?.disconnect(); } catch {}
+      this.source = null;
+      try { this.filter?.disconnect(); } catch {}
+      try { this.pan?.disconnect(); } catch {}
+      try { this.wet?.disconnect(); } catch {}
+      try { this.bus?.disconnect(); } catch {}
+      this.filter = null;
+      this.pan = null;
+      this.wet = null;
+      this.bus = null;
+    }
+
+    async start(presetKey, volume = 1, { fadeIn = FADE_IN_SEC } = {}) {
+      const preset = SAMPLE_PRESETS[presetKey];
+      if (!preset) throw new Error(`[Audio] unknown preset ${presetKey}`);
+
+      ensureCtx();
+      if (ctx.state === 'suspended') {
+        await Promise.race([
+          ctx.resume(),
+          new Promise((r) => setTimeout(r, 500)),
+        ]).catch(() => {});
+      }
+
+      this.stopImmediate();
+      this._buildGraph();
+      this.presetKey = presetKey;
+      this.presetGain = typeof preset.gain === 'number' ? preset.gain : 1;
+      this.userVolume = Math.max(0, Math.min(1, volume));
+      this.filter.frequency.value = preset.lowpass;
+
+      const el = new Audio(preset.url);
+      el.loop = true;
+      el.preload = 'auto';
+      el.playsInline = true;
+      if (preset.panDrift) this._startPanDrift();
+      else this.pan.pan.value = 0;
+
+      await this._waitForMedia(el);
+      this.el = el;
+      this.source = ctx.createMediaElementSource(el);
+      this.source.connect(this.filter);
+
+      const t = ctx.currentTime;
+      this.bus.gain.cancelScheduledValues(t);
+      this.bus.gain.setValueAtTime(0, t);
+      this.bus.gain.linearRampToValueAtTime(this._effectiveVolume(), t + Math.max(0.05, fadeIn));
+
+      await el.play();
+      this.active = true;
+    }
+
+    setVolume(volume) {
+      this.userVolume = Math.max(0, Math.min(1, volume));
+      if (!this.bus || !ctx) return;
+      const t = ctx.currentTime;
+      this.bus.gain.cancelScheduledValues(t);
+      this.bus.gain.setTargetAtTime(this._effectiveVolume(), t, 0.12);
+    }
+
+    fadeOut(duration = FADE_OUT_SEC) {
+      this.fadeToken += 1;
+      const token = this.fadeToken;
+      if (!this.bus || !ctx || !this.active) {
+        this.stopImmediate();
+        return Promise.resolve();
+      }
+
+      this.active = false;
+      const t = ctx.currentTime;
+      const current = this.bus.gain.value;
+      this.bus.gain.cancelScheduledValues(t);
+      this.bus.gain.setValueAtTime(current, t);
+      this.bus.gain.linearRampToValueAtTime(0, t + Math.max(0.05, duration));
+
+      return new Promise((resolve) => {
+        if (this.stopTimer) clearTimeout(this.stopTimer);
+        this.stopTimer = setTimeout(() => {
+          if (token !== this.fadeToken) {
+            resolve();
+            return;
+          }
+          this.stopImmediate();
+          resolve();
+        }, duration * 1000 + 60);
+      });
+    }
+
+    stopImmediate() {
+      this.active = false;
+      this.fadeToken += 1;
+      if (this.stopTimer) {
+        clearTimeout(this.stopTimer);
+        this.stopTimer = null;
+      }
+      this._teardownMedia();
+      this.presetKey = null;
+    }
+  }
+
+  function createSamplePlayer() {
+    return LOW_POWER ? new MediaLoopPlayer() : new CrossfadeSamplePlayer();
+  }
+
   // ─── Nap：氛围织境（生成式）+ 真实采样 ───
-  const napPlayer = new CrossfadeSamplePlayer();
+  const napPlayer = createSamplePlayer();
   let napPreset = 'woven';
   let napMode = 'meditate';
   let napVolume = 0.77;
@@ -858,7 +1088,7 @@ const AudioEngine = (() => {
   }
 
   // ─── Camp 场景（采样） ───
-  const campPlayer = new CrossfadeSamplePlayer();
+  const campPlayer = createSamplePlayer();
   let campVolume = 0.7;
   let campSwitchChain = Promise.resolve();
 
@@ -959,9 +1189,18 @@ const AudioEngine = (() => {
     noise.stop(t + 0.04);
   }
 
+  const OASIS_MAX_LAYERS = LOW_POWER ? 3 : OASIS_KEYS.length;
+
+  function oasisActiveLayerCount() {
+    return OASIS_KEYS.filter((k) => {
+      const v = oasis.layers[k] || 0;
+      return v >= 0.008 && oasis.players[k]?.active;
+    }).length;
+  }
+
   async function ensureOasisPlayer(key) {
     if (!SAMPLE_PRESETS[key]) return null;
-    if (!oasis.players[key]) oasis.players[key] = new CrossfadeSamplePlayer();
+    if (!oasis.players[key]) oasis.players[key] = createSamplePlayer();
     const player = oasis.players[key];
     if (!player.active) {
       try {
@@ -987,6 +1226,13 @@ const AudioEngine = (() => {
       const p = oasis.players[key];
       if (p?.active) p.fadeOut(1.2);
     } else {
+      const existing = oasis.players[key];
+      if (LOW_POWER && !existing?.active && oasisActiveLayerCount() >= OASIS_MAX_LAYERS) {
+        console.warn('[Audio] oasis layer limit reached on low-power device');
+        oasis.layers[key] = 0;
+        notifyOasisEnergy();
+        return;
+      }
       const p = await ensureOasisPlayer(key);
       p?.setVolume(v * 1.0);
     }
@@ -1125,18 +1371,23 @@ const AudioEngine = (() => {
     stopFocusMix();
   }
 
-  /** 预加载全部采样，减少首次播放等待 */
+  /** 预加载采样；车机轻量模式跳过，避免同时 decode 多轨 */
   function preloadAllSamples() {
+    if (LOW_POWER) return Promise.resolve();
     ensureCtx();
+    const liteKeys = ['rain', 'stream', 'waves', 'wind', 'fireplace'];
+    const urls = liteKeys.map((k) => SAMPLE_PRESETS[k].url);
     return Promise.all(
-      Object.values(SAMPLE_PRESETS).map((p) => loadBuffer(p.url).catch((e) => {
-        console.warn('[Audio] preload failed', p.url, e);
+      urls.map((url) => loadBuffer(url).catch((e) => {
+        console.warn('[Audio] preload failed', url, e);
       })),
     );
   }
 
   return {
     resume,
+    isLowPowerDevice,
+    LOW_POWER,
     SAMPLE_PRESETS,
     NAP_SOUNDSCAPES,
     preloadAllSamples,

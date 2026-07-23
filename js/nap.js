@@ -16,19 +16,11 @@ const NAP_MODES = {
   },
 };
 
-const NAP_SOUND_LABELS = {
-  woven: '氛围织境',
-  rain: '春雨车顶',
-  stream: '溪水潺潺',
-  waves: '潮汐海滨',
-  wind: '窗外微风',
-  fireplace: '壁炉暖火',
-  birds: '深林鸟鸣',
-  meditation1: '心灵修复',
-  meditation2: '星空风吟',
-  soundbath: '高保真音疗',
-  tibetan: '颂钵音疗',
-};
+const NAP_SOUND_LABELS = new Proxy({}, {
+  get(_, id) {
+    return (typeof I18n !== 'undefined') ? I18n.soundscape(id) : id;
+  },
+});
 
 const MODE_SOUND_MAP = {
   meditate: 'woven',
@@ -61,7 +53,8 @@ function initNap(cleanupFns) {
   let soundscape = MODE_SOUND_MAP.meditate;
   let playing = false;
   let waking = false;
-  let sessionLengthSec = 20 * 60;
+  const freeDefaultMin = (typeof ProGate !== 'undefined' && !ProGate.isPro()) ? 15 : 20;
+  let sessionLengthSec = freeDefaultMin * 60;
   let sessionSec = sessionLengthSec;
   let breathStart = performance.now();
   let sessionInterval;
@@ -212,7 +205,7 @@ function initNap(cleanupFns) {
     AudioEngine.setBreathPhase(phase);
     setBreathVisual(wave);
     if (mode === 'breathe') {
-      hintEl.textContent = inhale ? '吸气' : '呼气';
+      hintEl.textContent = inhale ? I18n.t('breathIn') : I18n.t('breathOut');
       hintEl.style.opacity = String(0.5 + phase * 0.5);
     }
   }
@@ -251,8 +244,8 @@ function initNap(cleanupFns) {
     playBtn.classList.remove('playing');
     detachBreathMotion();
     screen.classList.add('nap-waking');
-    title.textContent = 'GENTLE WAKE';
-    hintEl.textContent = '温和唤醒 · 晨光渐起';
+    title.textContent = I18n.t('gentleWakeTitle');
+    hintEl.textContent = I18n.t('gentleWakeHint');
     hintEl.style.opacity = '0.85';
 
     AudioEngine.fadeOutNapAudio(8);
@@ -268,7 +261,7 @@ function initNap(cleanupFns) {
     const cfg = NAP_MODES[mode];
     title.textContent = cfg.title;
     hintEl.style.opacity = mode === 'breathe' ? '0.35' : '0';
-    if (mode === 'breathe') hintEl.textContent = '吸气';
+    if (mode === 'breathe') hintEl.textContent = I18n.t('breathIn');
   }
 
   function togglePlay() {
@@ -293,13 +286,15 @@ function initNap(cleanupFns) {
 
   const timerPicker = createTimerPicker({
     triggerEl: timerBtn,
-    defaultMin: 20,
+    defaultMin: freeDefaultMin,
     onChange: (min) => {
       if (waking) resetWakeState();
       setDuration(min);
     },
     signal: ac.signal,
   });
+  setDuration(freeDefaultMin);
+  if (typeof ProGate !== 'undefined') ProGate.syncSoundscapeLocks();
 
   bindCarPlay(playBtn, togglePlay);
 
@@ -316,7 +311,13 @@ function initNap(cleanupFns) {
     const soundBtn = e.target.closest('button[data-soundscape]');
     if (soundBtn) {
       e.preventDefault();
-      unlockAndPlay(() => applySoundscape(soundBtn.dataset.soundscape, true));
+      const sc = soundBtn.dataset.soundscape;
+      const label = NAP_SOUND_LABELS[sc] || sc;
+      if (typeof ProGate !== 'undefined' && ProGate.isSoundscapeLocked(sc)) {
+        ProGate.requirePro(label, () => unlockAndPlay(() => applySoundscape(sc, true)));
+        return;
+      }
+      unlockAndPlay(() => applySoundscape(sc, true));
     }
   }, { signal: ac.signal });
 
@@ -338,9 +339,20 @@ function initNap(cleanupFns) {
   document.addEventListener('mousemove', onMove, { signal: ac.signal });
 
   applyMode('meditate');
-  durationLabelEl.textContent = durationLabel(20);
   setBreathRest();
   applyParallax();
+
+  I18n.onChange(() => {
+    renderMeta(NAP_MODES[mode]);
+    durationLabelEl.textContent = durationLabel(Math.round(sessionLengthSec / 60));
+    if (typeof ProGate !== 'undefined') {
+      ProGate.syncSoundscapeLocks();
+      I18n.applyDom(document.getElementById('nap-soundscapes'));
+    }
+    if (!playing && !waking && mode === 'breathe') {
+      hintEl.textContent = I18n.t('breathIn');
+    }
+  });
 
   cleanupFns.push(() => {
     ac.abort();

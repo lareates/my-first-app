@@ -349,6 +349,71 @@
 
 #scene-nap .aura-main {
   box-sizing: border-box;
+  padding-bottom: calc(var(--nap-panel-max) + 1.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+#scene-nap .aura-center {
+  transform: translateY(clamp(-2.5rem, -5vh, -1rem));
+  gap: clamp(1rem, 2.2vh, 2rem);
+}
+
+#scene-nap .aura-visual-wrap {
+  width: min(440px, 72vw);
+  height: min(440px, 72vw);
+}
+
+#scene-nap .aura-timer-row {
+  margin-top: clamp(0.5rem, 1vh, 1rem);
+}
+
+@media (orientation: landscape) and (max-height: 900px) {
+  #scene-nap {
+    --nap-panel-max: clamp(11.5rem, 36vh, 14.5rem);
+    --nap-sound-scroll-max: clamp(5.5rem, 15vh, 7.5rem);
+  }
+  #scene-nap .aura-visual-wrap {
+    width: min(320px, 42vh);
+    height: min(320px, 42vh);
+  }
+  #scene-nap .aura-center {
+    transform: translateY(clamp(-1.5rem, -3vh, 0));
+    gap: clamp(0.65rem, 1.6vh, 1.25rem);
+  }
+  #scene-nap .aura-title {
+    font-size: clamp(1.25rem, 2.8vh, 1.75rem);
+  }
+}
+
+@media (max-width: 768px) {
+  #scene-nap {
+    --nap-panel-max: clamp(13rem, 36vh, 15.5rem);
+    --nap-sound-scroll-max: clamp(5.75rem, 15vh, 7.25rem);
+  }
+  #scene-nap .aura-visual-wrap {
+    width: min(260px, 56vw);
+    height: min(260px, 56vw);
+  }
+  #scene-nap .aura-center {
+    transform: none;
+    gap: 0.85rem;
+  }
+  #scene-nap .aura-title {
+    font-size: clamp(1.35rem, 5.5vw, 1.85rem);
+  }
+  #scene-nap .aura-label {
+    margin-bottom: 0.25rem;
+  }
+}
+
+@media (max-height: 740px) {
+  #scene-nap {
+    --nap-panel-max: clamp(12rem, 34vh, 14rem);
+    --nap-sound-scroll-max: clamp(5rem, 14vh, 6.5rem);
+  }
+  #scene-nap .aura-visual-wrap {
+    width: min(220px, 50vw);
+    height: min(220px, 50vw);
+  }
 }
 
 #scene-nap.nap-ambient-on:not(.nap-has-scene-bg) .aura-main {
@@ -362,7 +427,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: clamp(11.5rem, 30vh, 14.5rem);
+  bottom: calc(var(--nap-panel-max) + 1rem + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;

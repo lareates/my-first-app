@@ -12,7 +12,9 @@ initIcons();
 
 ['touchstart', 'click'].forEach(evt => {
   document.addEventListener(evt, () => {
-    AudioEngine.resume().then(() => AudioEngine.preloadAllSamples?.());
+    AudioEngine.resume().then(() => {
+      if (!AudioEngine.LOW_POWER) AudioEngine.preloadAllSamples?.();
+    });
   }, { once: true, passive: true });
 });
 

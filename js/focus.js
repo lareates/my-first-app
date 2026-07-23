@@ -1,24 +1,26 @@
 let timerMode = 'countdown';
-let timerSeconds = 20 * 60;
+const FOCUS_FREE_DEFAULT_MIN = 15;
+let timerSeconds = FOCUS_FREE_DEFAULT_MIN * 60;
 let timerRunning = false;
 let timerInterval = null;
-let timerInitial = 20 * 60;
+let timerInitial = FOCUS_FREE_DEFAULT_MIN * 60;
 let sessionCount = 0;
 let todayMinutes = 0;
 let focusDurationPicker = null;
+let focusStatusState = 'idle';
 
-const OASIS_LABELS = {
-  rain: '雨声',
-  stream: '溪流',
-  waves: '海浪',
-  wind: '风声',
-  fireplace: '壁炉',
-  birds: '鸟鸣',
-  meditation1: '心灵',
-  meditation2: '星风',
-  soundbath: '音疗',
-  tibetan: '颂钵',
-};
+function refreshFocusSessionLine() {
+  const sessionEl = document.getElementById('focus-session');
+  if (sessionEl) {
+    sessionEl.textContent = I18n.t('focusSession', { n: sessionCount, mins: todayMinutes });
+  }
+}
+
+const OASIS_LABELS = new Proxy({}, {
+  get(_, key) {
+    return (typeof I18n !== 'undefined') ? I18n.oasis(key) : key;
+  },
+});
 
 function formatTimer(s) {
   const m = Math.floor(Math.abs(s) / 60);
@@ -31,18 +33,19 @@ function updateTimerDisplay() {
 }
 
 function setFocusStatus(state) {
+  focusStatusState = state;
   const dot = document.getElementById('focus-dot');
   const text = document.getElementById('focus-status-text');
   dot.className = 'dot';
   if (state === 'focus') {
     dot.classList.add('active');
-    text.textContent = '专注中';
+    text.textContent = I18n.t('focusActive');
   } else if (state === 'break') {
     dot.classList.add('break');
-    text.textContent = '休息中';
+    text.textContent = I18n.t('focusBreak');
   } else {
     dot.classList.add('idle');
-    text.textContent = '待命中';
+    text.textContent = I18n.t('focusIdle');
   }
 }
 
@@ -100,11 +103,14 @@ function initFocus(cleanupFns) {
     durationBtn.style.display = timerMode === 'countdown' ? 'inline-flex' : 'none';
   }
 
-  sessionEl.textContent = `会话 ${sessionCount} · 今日 ${todayMinutes} 分钟`;
+  refreshFocusSessionLine();
+
+  const focusDefaultMin = (typeof ProGate !== 'undefined' && ProGate.isPro()) ? 20 : FOCUS_FREE_DEFAULT_MIN;
+  applyCountdownDuration(focusDefaultMin);
 
   focusDurationPicker = createTimerPicker({
     triggerEl: durationBtn,
-    defaultMin: 20,
+    defaultMin: focusDefaultMin,
     onChange: applyCountdownDuration,
     signal: ac.signal,
   });
@@ -137,10 +143,10 @@ function initFocus(cleanupFns) {
 
   function updateEnergyLabel(level) {
     if (!energyEl) return;
-    if (level < 0.04) energyEl.textContent = '星空静谧';
-    else if (level < 0.35) energyEl.textContent = '星光缓息';
-    else if (level < 0.7) energyEl.textContent = '星河流动';
-    else energyEl.textContent = '星野盛放';
+    if (level < 0.04) energyEl.textContent = I18n.t('oasisEnergy0');
+    else if (level < 0.35) energyEl.textContent = I18n.t('oasisEnergy1');
+    else if (level < 0.7) energyEl.textContent = I18n.t('oasisEnergy2');
+    else energyEl.textContent = I18n.t('oasisEnergy3');
   }
 
   function syncFaderFill(input) {
@@ -162,7 +168,7 @@ function initFocus(cleanupFns) {
 
       AudioEngine.setOasisLayer(key, val / 100, { tick: stepped });
       if (hintEl && val > 0) {
-        hintEl.textContent = `${OASIS_LABELS[key] || key} · ${val}%`;
+        hintEl.textContent = I18n.t('oasisLayer', { name: OASIS_LABELS[key] || key, val });
       }
     };
 
@@ -180,6 +186,20 @@ function initFocus(cleanupFns) {
     updateEnergyLabel(level);
   });
   updateEnergyLabel(0);
+  if (typeof ProGate !== 'undefined') ProGate.syncOasisLocks();
+
+  I18n.onChange(() => {
+    refreshFocusSessionLine();
+    durationLabelEl.textContent = durationLabel(focusDurationPicker?.getMinutes() ?? FOCUS_FREE_DEFAULT_MIN);
+    setFocusStatus(focusStatusState);
+    updateEnergyLabel(AudioEngine.oasisEnergy?.() ?? 0);
+    document.getElementById('timer-start').textContent = timerRunning ? I18n.t('timerPause') : I18n.t('timerStart');
+    document.getElementById('focus-date').textContent = formatDate(new Date());
+    if (typeof ProGate !== 'undefined') {
+      ProGate.syncOasisLocks();
+      I18n.applyDom(document.getElementById('panel-oasis'));
+    }
+  });
 
   updateTimerDisplay();
   cleanupFns.push(() => {
@@ -195,7 +215,7 @@ function initFocus(cleanupFns) {
 function startTimer(sessionEl) {
   if (timerMode === 'stopwatch') timerInitial = 0;
   timerRunning = true;
-  document.getElementById('timer-start').textContent = '暂停';
+  document.getElementById('timer-start').textContent = I18n.t('timerPause');
   setFocusStatus('focus');
 
   timerInterval = setInterval(() => {
@@ -209,13 +229,13 @@ function startTimer(sessionEl) {
         pauseTimer();
         sessionCount++;
         todayMinutes += Math.round((timerInitial || 25 * 60) / 60);
-        sessionEl.textContent = `会话 ${sessionCount} · 今日 ${todayMinutes} 分钟`;
+        refreshFocusSessionLine();
         triggerCompletionEffects(wasPomodoro);
         if (wasPomodoro) {
           timerSeconds = 5 * 60;
           timerInitial = 5 * 60;
           const hint = document.getElementById('oasis-hint');
-          if (hint) hint.textContent = '☕ 休息 5 分钟 · 推子可继续轻放';
+          if (hint) hint.textContent = I18n.t('breakHint');
           updateTimerDisplay();
         }
       }
@@ -226,10 +246,10 @@ function startTimer(sessionEl) {
 
 function pauseTimer() {
   timerRunning = false;
-  document.getElementById('timer-start').textContent = '开始';
+  document.getElementById('timer-start').textContent = I18n.t('timerStart');
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
-  if (document.getElementById('focus-status-text').textContent !== '休息中') {
+  if (focusStatusState !== 'break') {
     setFocusStatus('idle');
   }
 }
@@ -243,9 +263,9 @@ function resetTimer() {
     timerSeconds = 25 * 60;
     timerInitial = 25 * 60;
     const hint = document.getElementById('oasis-hint');
-    if (hint) hint.textContent = '轻推推子 · 叠出你的解压声场';
+    if (hint) hint.textContent = I18n.t('oasisHint');
   } else {
-    const activeMin = focusDurationPicker?.getMinutes() ?? 20;
+    const activeMin = focusDurationPicker?.getMinutes() ?? FOCUS_FREE_DEFAULT_MIN;
     timerInitial = activeMin * 60;
     timerSeconds = timerInitial;
   }

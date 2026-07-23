@@ -1,7 +1,8 @@
 const pad = (n) => String(n).padStart(2, '0');
 
 function formatDate(d) {
-  return d.toLocaleDateString('zh-CN', { weekday: 'long', month: 'long', day: 'numeric' });
+  const tag = (typeof I18n !== 'undefined') ? I18n.localeTag() : 'en-US';
+  return d.toLocaleDateString(tag, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 function startClock(updateFn, interval = 1000) {

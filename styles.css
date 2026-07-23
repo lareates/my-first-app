@@ -50,6 +50,35 @@ html, body {
   line-height: 1.15;
   letter-spacing: 0.02em;
 }
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1.25rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+}
+.lang-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(207,196,197,0.65);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.lang-btn:hover { color: rgba(226,226,226,0.9); }
+.lang-btn.active {
+  color: rgba(226,226,226,0.95);
+  background: rgba(54,38,206,0.28);
+  box-shadow: 0 0 16px rgba(210,187,255,0.1);
+}
 .scene-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

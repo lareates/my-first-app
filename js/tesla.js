@@ -125,8 +125,41 @@ function enterTeslaTheaterModeViaYouTube() {
   location.href = `https://www.youtube.com/redirect?q=${encodeURIComponent(target)}`;
 }
 
+function isChinaBrowserRegion() {
+  try {
+    const override = localStorage.getItem('aetheris-theater-region');
+    if (override === 'cn') return true;
+    if (override === 'intl') return false;
+  } catch { /* ignore */ }
+  const langs = [navigator.language, ...(navigator.languages || [])]
+    .filter(Boolean)
+    .map((l) => l.toLowerCase());
+  if (langs.some((l) => l === 'zh-cn' || l.startsWith('zh-cn'))) return true;
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const cnZones = ['Asia/Shanghai', 'Asia/Chongqing', 'Asia/Urumqi', 'Asia/Harbin', 'Asia/Kashgar'];
+    if (cnZones.includes(tz)) return true;
+  } catch { /* ignore */ }
+  return false;
+}
+
+/** 调试：localStorage.setItem('aetheris-theater-region','cn'|'intl') */
+function syncTheaterButtons() {
+  const useCn = isChinaBrowserRegion();
+  document.querySelectorAll('.aura-theater-btn').forEach((btn) => {
+    const type = btn.dataset.theater;
+    const show = useCn ? type === 'cn' : type === 'yt';
+    btn.hidden = !show;
+    btn.toggleAttribute('hidden', !show);
+    btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+  });
+  if (typeof ProGate !== 'undefined') ProGate.syncTheaterLocks();
+}
+
 function initTheaterModeUi() {
   if (isTheaterMode()) markTheaterMode();
+  syncTheaterButtons();
+  if (typeof I18n !== 'undefined') I18n.onChange(syncTheaterButtons);
 
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.aura-theater-btn');
@@ -134,12 +167,17 @@ function initTheaterModeUi() {
 
     e.preventDefault();
     const type = btn.dataset.theater;
+    const label = type === 'cn'
+      ? (typeof I18n !== 'undefined' ? I18n.t('theaterCn') : 'Tencent Fullscreen')
+      : (typeof I18n !== 'undefined' ? I18n.t('theaterYt') : 'YT Fullscreen');
 
-    if (type === 'cn') {
-      enterTeslaTheaterModeChina();
-    } else if (type === 'yt') {
-      enterTeslaTheaterModeViaYouTube();
-    }
+    const enter = () => {
+      if (type === 'cn') enterTeslaTheaterModeChina();
+      else if (type === 'yt') enterTeslaTheaterModeViaYouTube();
+    };
+
+    if (typeof ProGate !== 'undefined' && !ProGate.requirePro(label, enter)) return;
+    enter();
   });
 }
 

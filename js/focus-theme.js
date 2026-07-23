@@ -140,6 +140,7 @@ const FocusTheme = (() => {
     setPro(true);
     const target = PRO_THEMES.has(pendingProTheme) ? pendingProTheme : 'porsche-911';
     setTheme(target, { force: true });
+    if (typeof ProGate !== 'undefined') ProGate.syncAllLocks();
   }
 
   function applyUiVisibility() {

@@ -36,7 +36,7 @@ function initCamp(cleanupFns) {
   const BOOT_MS = 2500;
 
   if (isPerseidsSeason() && isNightHour()) {
-    badgeEl.textContent = '☄️ 英仙座流星雨';
+    badgeEl.textContent = I18n.t('campPerseids');
   }
 
   function setSysActive(on) {
@@ -203,7 +203,7 @@ function initCamp(cleanupFns) {
     } else if (m === 'stars' && statusEl) {
       clearBootTimers();
       setSysActive(false);
-      statusEl.textContent = '切换到「地形」查看位置';
+      statusEl.textContent = I18n.t('campTerrainHint');
     } else {
       clearBootTimers();
       setSysActive(false);

@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="dark heritage-ui-off">
+<html lang="en" class="dark heritage-ui-off">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0c0f0f">
-  <title>Aetheris · 随行空间</title>
+  <title>Aetheris · Cabin Space</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="css/aura.css">
-  <link rel="stylesheet" href="css/nap-scenes.css">
+  <link rel="stylesheet" href="css/aura.css?v=5">
+  <link rel="stylesheet" href="css/nap-scenes.css?v=3">
   <link rel="stylesheet" href="css/porsche-gauges.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,24 +19,29 @@
   <section id="home" class="screen active">
     <div class="home-bg"></div>
     <header class="home-header">
-      <p class="eyebrow">Aetheris · 随行空间</p>
-      <h1>选择你的<br>此刻场景</h1>
+      <p class="eyebrow" data-i18n="homeEyebrow">Aetheris · Cabin Space</p>
+      <h1 data-i18n-html="homeTitle">Choose your<br>moment</h1>
+      <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="langGroup">
+        <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        <button type="button" class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
+        <button type="button" class="lang-btn" data-lang="fr" aria-pressed="false">FR</button>
+      </div>
     </header>
     <nav class="scene-grid">
       <button class="scene-card" data-scene="nap">
         <span class="scene-icon ico ico-scene" data-icon="moon"></span>
-        <span class="scene-label">车内打盹</span>
-        <span class="scene-desc">睡眠 · 冥想 · 呼吸</span>
+        <span class="scene-label" data-i18n="sceneNap">In-car Nap</span>
+        <span class="scene-desc" data-i18n="sceneNapDesc">Sleep · Meditate · Breathe</span>
       </button>
       <button class="scene-card" data-scene="camp">
         <span class="scene-icon ico ico-scene" data-icon="tent"></span>
-        <span class="scene-label">户外露营</span>
-        <span class="scene-desc">星空 · 地形 · 天象</span>
+        <span class="scene-label" data-i18n="sceneCamp">Outdoor Camp</span>
+        <span class="scene-desc" data-i18n="sceneCampDesc">Stars · Terrain · Sky</span>
       </button>
       <button class="scene-card" data-scene="focus">
         <span class="scene-icon ico ico-scene" data-icon="bolt"></span>
-        <span class="scene-label">充电等人</span>
-        <span class="scene-desc">解压时钟 · ASMR 调音台</span>
+        <span class="scene-label" data-i18n="sceneFocus">Charge & Wait</span>
+        <span class="scene-desc" data-i18n="sceneFocusDesc">Relief Timer · ASMR Mixer</span>
       </button>
     </nav>
 
@@ -172,16 +177,16 @@
     </div>
 
     <header class="aura-header">
-      <button type="button" class="aura-back" data-back aria-label="返回">
+      <button type="button" class="aura-back" data-back data-i18n-aria="back" aria-label="Back">
         <span class="ico" data-icon="back"></span>
       </button>
       <div class="aura-header-right">
         <div class="aura-theater-actions">
-          <button type="button" class="aura-theater-btn" data-theater="yt">🚀 YT 全屏</button>
-          <button type="button" class="aura-theater-btn" data-theater="cn">🚀 腾讯全屏</button>
+          <button type="button" class="aura-theater-btn" data-theater="yt" data-i18n="theaterYt">🚀 YT Fullscreen</button>
+          <button type="button" class="aura-theater-btn" data-theater="cn" data-i18n="theaterCn">🚀 Tencent Fullscreen</button>
         </div>
         <div class="nap-bg-btn-wrap">
-          <button type="button" class="aura-back nap-bg-btn" id="nap-bg-btn" aria-label="切换背景">
+          <button type="button" class="aura-back nap-bg-btn" id="nap-bg-btn" data-i18n-aria="swapBg" aria-label="Change background">
             <span class="ico" data-icon="wallpaper"></span>
           </button>
         </div>
@@ -202,17 +207,17 @@
           <div class="aura-art" id="nap-art" role="img" aria-label="session visual"></div>
         </div>
         <div class="aura-typography">
-          <p class="aura-label">Active Session</p>
+          <p class="aura-label" data-i18n="activeSession">Active Session</p>
           <h1 class="aura-title" id="nap-title">DEEP RELAXATION</h1>
           <div class="aura-timer-row">
             <span class="aura-timer-line"></span>
-            <button type="button" class="aura-timer-btn" id="nap-timer-btn" aria-label="设置会话时长">
-              <time class="aura-timer" id="nap-session-timer">20:00</time>
-              <span class="aura-timer-duration" id="nap-duration-label">20 分钟</span>
+            <button type="button" class="aura-timer-btn" id="nap-timer-btn" data-i18n-aria="setDuration" aria-label="Set session duration">
+              <time class="aura-timer" id="nap-session-timer">15:00</time>
+              <span class="aura-timer-duration" id="nap-duration-label">15 min</span>
             </button>
             <span class="aura-timer-line"></span>
           </div>
-          <p class="aura-breath-hint" id="breath-hint">吸气</p>
+          <p class="aura-breath-hint" id="breath-hint" data-i18n="breathIn">Inhale</p>
         </div>
       </div>
     </main>
@@ -223,15 +228,15 @@
           <div class="horizon-modes" id="nap-modes">
             <button type="button" class="horizon-mode active" data-nap-mode="meditate">
               <span class="ico" data-icon="meditate"></span>
-              <span>冥想</span>
+              <span data-i18n="napModeMeditate">Meditate</span>
             </button>
             <button type="button" class="horizon-mode mode-secondary" data-nap-mode="sleep">
               <span class="ico" data-icon="sleep"></span>
-              <span>睡眠</span>
+              <span data-i18n="napModeSleep">Sleep</span>
             </button>
             <button type="button" class="horizon-mode" data-nap-mode="breathe">
               <span class="ico" data-icon="breathe"></span>
-              <span>呼吸</span>
+              <span data-i18n="napModeBreathe">Breathe</span>
             </button>
           </div>
           <div class="horizon-controls">
@@ -242,23 +247,25 @@
                 <input type="range" class="volume-input" id="nap-volume" min="0" max="100" value="77">
               </div>
             </div>
-            <button type="button" class="horizon-play" id="nap-play" aria-label="播放">
+            <button type="button" class="horizon-play" id="nap-play" data-i18n-aria="play" aria-label="Play">
               <span class="ico ico-play" data-icon="play" data-play-icon></span>
             </button>
           </div>
         </div>
-        <div class="nap-soundscapes" id="nap-soundscapes" role="group" aria-label="声景选择">
-          <button type="button" class="nap-sound-chip active" data-soundscape="woven">氛围织境</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="rain">春雨车顶</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="stream">溪水潺潺</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="waves">潮汐海滨</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="wind">窗外微风</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="fireplace">壁炉暖火</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="birds">深林鸟鸣</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="meditation1">心灵修复</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="meditation2">星空风吟</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="soundbath">高保真音疗</button>
-          <button type="button" class="nap-sound-chip" data-soundscape="tibetan">颂钵音疗</button>
+        <div class="nap-soundscapes-scroll" aria-label="Soundscapes list">
+          <div class="nap-soundscapes" id="nap-soundscapes" role="group" data-i18n-aria="soundscapes" aria-label="Soundscapes">
+          <button type="button" class="nap-sound-chip active" data-soundscape="woven" data-i18n="soundscape.woven">Ambient Woven</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="rain" data-i18n="soundscape.rain">Rain on Roof</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="stream" data-i18n="soundscape.stream">Stream</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="waves" data-i18n="soundscape.waves">Coastal Waves</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="wind" data-i18n="soundscape.wind">Window Breeze</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="fireplace" data-i18n="soundscape.fireplace">Fireplace</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="birds" data-i18n="soundscape.birds">Forest Birds</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="meditation1" data-i18n="soundscape.meditation1">Soul Repair</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="meditation2" data-i18n="soundscape.meditation2">Starry Wind</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="soundbath" data-i18n="soundscape.soundbath">Hi-Fi Therapy</button>
+          <button type="button" class="nap-sound-chip" data-soundscape="tibetan" data-i18n="soundscape.tibetan">Singing Bowls</button>
+        </div>
         </div>
       </div>
     </nav>
@@ -281,13 +288,13 @@
     </div>
 
     <header class="aura-header">
-      <button type="button" class="aura-back" data-back aria-label="返回">
+      <button type="button" class="aura-back" data-back data-i18n-aria="back" aria-label="Back">
         <span class="ico" data-icon="back"></span>
       </button>
       <div class="aura-header-right">
         <div class="aura-theater-actions">
-          <button type="button" class="aura-theater-btn" data-theater="yt">🚀 YT 全屏</button>
-          <button type="button" class="aura-theater-btn" data-theater="cn">🚀 腾讯全屏</button>
+          <button type="button" class="aura-theater-btn" data-theater="yt" data-i18n="theaterYt">🚀 YT Fullscreen</button>
+          <button type="button" class="aura-theater-btn" data-theater="cn" data-i18n="theaterCn">🚀 Tencent Fullscreen</button>
         </div>
         <div class="bookmark-hint-anchor" aria-hidden="true"></div>
       </div>
@@ -302,7 +309,7 @@
     <main class="aura-main">
       <div class="aura-center" id="camp-parallax" style="transform: translateY(-2rem);">
         <div class="aura-typography" style="width:100%;max-width:720px;padding:0 var(--aura-margin);">
-          <p class="aura-label" id="camp-badge">⛺ 露营模式</p>
+          <p class="aura-label" id="camp-badge" data-i18n="campBadge">⛺ Camp Mode</p>
           <time class="camp-clock-aura" id="camp-clock">00:00:00</time>
 
           <div class="camp-panel active" data-camp-panel="stars">
@@ -313,28 +320,28 @@
             <div class="camp-glass camp-stats-aura">
               <div class="camp-sys-status" id="camp-sys-status" aria-live="polite">
                 <span class="camp-sys-led" aria-hidden="true"></span>
-                <span class="camp-sys-label">[ SYSTEM ACTIVE ]</span>
+                <span class="camp-sys-label" data-i18n="campSysActive">[ SYSTEM ACTIVE ]</span>
               </div>
               <div class="camp-stat-aura">
-                <span class="stat-label">海拔</span>
+                <span class="stat-label" data-i18n="campStatAlt">Altitude</span>
                 <div class="flip-display" id="flip-altitude" data-value="—"></div>
                 <span class="stat-unit" style="font-size:0.7rem;color:var(--aura-on-surface-variant)">m</span>
               </div>
               <div class="camp-stat-aura">
-                <span class="stat-label">纬度</span>
+                <span class="stat-label" data-i18n="campStatLat">Latitude</span>
                 <div class="flip-display mono small" id="flip-lat" data-value="—"></div>
               </div>
               <div class="camp-stat-aura">
-                <span class="stat-label">经度</span>
+                <span class="stat-label" data-i18n="campStatLng">Longitude</span>
                 <div class="flip-display mono small" id="flip-lng" data-value="—"></div>
               </div>
               <div class="camp-stat-aura">
-                <span class="stat-label">精度</span>
+                <span class="stat-label" data-i18n="campStatAcc">Accuracy</span>
                 <div class="flip-display" id="flip-accuracy" data-value="—"></div>
                 <span class="stat-unit" style="font-size:0.7rem;color:var(--aura-on-surface-variant)">m</span>
               </div>
             </div>
-            <p class="camp-status-aura" id="camp-status">切换到「地形」查看位置</p>
+            <p class="camp-status-aura" id="camp-status" data-i18n="campTerrainHint">Switch to Terrain for location</p>
           </div>
 
           <div class="camp-panel" data-camp-panel="orient">
@@ -363,15 +370,15 @@
         <div class="horizon-modes" id="camp-modes">
           <button type="button" class="horizon-mode active mode-camp" data-camp-mode="stars">
             <span class="ico" data-icon="star"></span>
-            <span>星空</span>
+            <span data-i18n="campModeStars">Stars</span>
           </button>
           <button type="button" class="horizon-mode mode-camp" data-camp-mode="terrain">
             <span class="ico" data-icon="terrain"></span>
-            <span>地形</span>
+            <span data-i18n="campModeTerrain">Terrain</span>
           </button>
           <button type="button" class="horizon-mode mode-camp" data-camp-mode="orient">
             <span class="ico" data-icon="compass"></span>
-            <span>天象</span>
+            <span data-i18n="campModeOrient">Sky</span>
           </button>
         </div>
         <div class="horizon-volume">
@@ -381,7 +388,7 @@
             <input type="range" class="volume-input" id="camp-volume" min="0" max="100" value="70">
           </div>
         </div>
-        <button type="button" class="horizon-play" id="camp-play" aria-label="播放">
+        <button type="button" class="horizon-play" id="camp-play" data-i18n-aria="play" aria-label="Play">
           <span class="ico ico-play" data-icon="play" data-play-icon></span>
         </button>
       </div>
@@ -394,13 +401,13 @@
     <div class="focus-ripple" id="focus-ripple" aria-hidden="true"></div>
 
     <header class="aura-header">
-      <button type="button" class="aura-back" data-back aria-label="返回">
+      <button type="button" class="aura-back" data-back data-i18n-aria="back" aria-label="Back">
         <span class="ico" data-icon="back"></span>
       </button>
       <div class="aura-header-right">
         <div class="aura-theater-actions">
-          <button type="button" class="aura-theater-btn" data-theater="yt">🚀 YT 全屏</button>
-          <button type="button" class="aura-theater-btn" data-theater="cn">🚀 腾讯全屏</button>
+          <button type="button" class="aura-theater-btn" data-theater="yt" data-i18n="theaterYt">🚀 YT Fullscreen</button>
+          <button type="button" class="aura-theater-btn" data-theater="cn" data-i18n="theaterCn">🚀 Tencent Fullscreen</button>
         </div>
         <div class="focus-theme-bar" id="focus-theme-chips" role="group" aria-label="主题切换">
           <button type="button" class="focus-theme-chip active" data-focus-theme="default" aria-pressed="true">Default</button>
@@ -424,8 +431,8 @@
         <span class="focus-zen-date" id="focus-date"></span>
         <div class="focus-zen-status">
           <span class="dot" id="focus-dot"></span>
-          <span id="focus-status-text">待命中</span>
-          <span class="focus-zen-session" id="focus-session">会话 0 · 今日 0 分钟</span>
+          <span id="focus-status-text" data-i18n="focusIdle">Standby</span>
+          <span class="focus-zen-session" id="focus-session">Session 0 · 0 min today</span>
         </div>
       </div>
 
@@ -498,141 +505,143 @@
 
       <section class="focus-zen-timer" id="panel-timer">
         <div class="focus-zen-timer-head">
-          <span class="cell-label">解压时钟</span>
+          <span class="cell-label" data-i18n="reliefTimer">Relief Timer</span>
           <div class="timer-mode-tabs">
-            <button type="button" class="tab active" data-mode="countdown">倒计时</button>
-            <button type="button" class="tab" data-mode="stopwatch">秒表</button>
-            <button type="button" class="tab" data-mode="pomodoro">番茄</button>
+            <button type="button" class="tab active" data-mode="countdown" data-i18n="timerCountdown">Countdown</button>
+            <button type="button" class="tab" data-mode="stopwatch" data-i18n="timerStopwatch">Stopwatch</button>
+            <button type="button" class="tab" data-mode="pomodoro" data-i18n="timerPomodoro">Pomodoro</button>
           </div>
         </div>
-        <div class="focus-zen-timer-display" id="timer-display">20:00</div>
-        <button type="button" class="focus-duration-btn" id="focus-duration-btn" aria-label="设置倒计时时长">
-          <span id="focus-duration-label">20 分钟</span>
+        <div class="focus-zen-timer-display" id="timer-display">15:00</div>
+        <button type="button" class="focus-duration-btn" id="focus-duration-btn" data-i18n-aria="setCountdown" aria-label="Set countdown duration">
+          <span id="focus-duration-label">15 min</span>
           <span class="focus-duration-chevron">▾</span>
         </button>
         <div class="focus-zen-actions">
-          <button type="button" class="action-btn primary" id="timer-start">开始</button>
-          <button type="button" class="action-btn" id="timer-reset">重置</button>
+          <button type="button" class="action-btn primary" id="timer-start" data-i18n="timerStart">Start</button>
+          <button type="button" class="action-btn" id="timer-reset" data-i18n="timerReset">Reset</button>
         </div>
       </section>
 
-      <section class="oasis-console" id="panel-oasis" aria-label="ASMR 调音台">
+      <section class="oasis-console" id="panel-oasis" data-i18n-aria="asmrMixer" aria-label="ASMR Mixer">
         <div class="oasis-console-head">
-          <span class="cell-label">ASMR 调音台</span>
-          <span class="oasis-energy" id="oasis-energy" aria-live="polite">星空静谧</span>
+          <span class="cell-label" data-i18n="asmrMixer">ASMR Mixer</span>
+          <span class="oasis-energy" id="oasis-energy" aria-live="polite" data-i18n="oasisEnergy0">Stellar stillness</span>
         </div>
-        <div class="oasis-faders" id="oasis-faders" role="group" aria-label="自然环境推子">
+        <div class="oasis-faders" id="oasis-faders" role="group" data-i18n-aria="oasisFaders" aria-label="Nature faders">
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-rain" data-oasis="rain" min="0" max="100" value="0" orient="vertical" aria-label="雨声">
+              <input type="range" class="oasis-slider" id="oasis-rain" data-oasis="rain" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.rain" aria-label="Rain">
               <span class="oasis-fader-fill" id="oasis-rain-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">雨声</span>
+            <span class="oasis-fader-label" data-i18n="oasis.rain">Rain</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-stream" data-oasis="stream" min="0" max="100" value="0" orient="vertical" aria-label="溪流">
+              <input type="range" class="oasis-slider" id="oasis-stream" data-oasis="stream" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.stream" aria-label="Stream">
               <span class="oasis-fader-fill" id="oasis-stream-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">溪流</span>
+            <span class="oasis-fader-label" data-i18n="oasis.stream">Stream</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-waves" data-oasis="waves" min="0" max="100" value="0" orient="vertical" aria-label="海浪">
+              <input type="range" class="oasis-slider" id="oasis-waves" data-oasis="waves" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.waves" aria-label="Waves">
               <span class="oasis-fader-fill" id="oasis-waves-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">海浪</span>
+            <span class="oasis-fader-label" data-i18n="oasis.waves">Waves</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-wind" data-oasis="wind" min="0" max="100" value="0" orient="vertical" aria-label="风声">
+              <input type="range" class="oasis-slider" id="oasis-wind" data-oasis="wind" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.wind" aria-label="Wind">
               <span class="oasis-fader-fill" id="oasis-wind-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">风声</span>
+            <span class="oasis-fader-label" data-i18n="oasis.wind">Wind</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-fireplace" data-oasis="fireplace" min="0" max="100" value="0" orient="vertical" aria-label="壁炉">
+              <input type="range" class="oasis-slider" id="oasis-fireplace" data-oasis="fireplace" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.fireplace" aria-label="Fireplace">
               <span class="oasis-fader-fill" id="oasis-fireplace-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">壁炉</span>
+            <span class="oasis-fader-label" data-i18n="oasis.fireplace">Fireplace</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-birds" data-oasis="birds" min="0" max="100" value="0" orient="vertical" aria-label="鸟鸣">
+              <input type="range" class="oasis-slider" id="oasis-birds" data-oasis="birds" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.birds" aria-label="Birds">
               <span class="oasis-fader-fill" id="oasis-birds-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">鸟鸣</span>
+            <span class="oasis-fader-label" data-i18n="oasis.birds">Birds</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-meditation1" data-oasis="meditation1" min="0" max="100" value="0" orient="vertical" aria-label="心灵修复">
+              <input type="range" class="oasis-slider" id="oasis-meditation1" data-oasis="meditation1" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.meditation1" aria-label="Soul">
               <span class="oasis-fader-fill" id="oasis-meditation1-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">心灵</span>
+            <span class="oasis-fader-label" data-i18n="oasis.meditation1">Soul</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-meditation2" data-oasis="meditation2" min="0" max="100" value="0" orient="vertical" aria-label="星空风吟">
+              <input type="range" class="oasis-slider" id="oasis-meditation2" data-oasis="meditation2" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.meditation2" aria-label="Starwind">
               <span class="oasis-fader-fill" id="oasis-meditation2-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">星风</span>
+            <span class="oasis-fader-label" data-i18n="oasis.meditation2">Starwind</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-soundbath" data-oasis="soundbath" min="0" max="100" value="0" orient="vertical" aria-label="音疗">
+              <input type="range" class="oasis-slider" id="oasis-soundbath" data-oasis="soundbath" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.soundbath" aria-label="Bath">
               <span class="oasis-fader-fill" id="oasis-soundbath-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">音疗</span>
+            <span class="oasis-fader-label" data-i18n="oasis.soundbath">Bath</span>
           </label>
           <label class="oasis-fader">
             <span class="oasis-fader-track">
-              <input type="range" class="oasis-slider" id="oasis-tibetan" data-oasis="tibetan" min="0" max="100" value="0" orient="vertical" aria-label="颂钵">
+              <input type="range" class="oasis-slider" id="oasis-tibetan" data-oasis="tibetan" min="0" max="100" value="0" orient="vertical" data-i18n-aria="oasis.tibetan" aria-label="Bowls">
               <span class="oasis-fader-fill" id="oasis-tibetan-fill" style="height:0%"></span>
             </span>
-            <span class="oasis-fader-label">颂钵</span>
+            <span class="oasis-fader-label" data-i18n="oasis.tibetan">Bowls</span>
           </label>
         </div>
-        <p class="oasis-hint" id="oasis-hint">轻推推子 · 叠出你的解压声场</p>
+        <p class="oasis-hint" id="oasis-hint" data-i18n="oasisHint">Slide faders · build your soundscape</p>
       </section>
     </main>
   </section>
 
-  <!-- Heritage 付费弹窗：挂在 body，避免被 .screen overflow 裁切 -->
+  <!-- Pro / Heritage 付费弹窗：挂在 body，避免被 .screen overflow 裁切 -->
   <div class="focus-paywall" id="focus-paywall" aria-hidden="true">
     <div class="focus-paywall-backdrop" data-paywall-close></div>
     <div class="focus-paywall-panel" role="dialog" aria-modal="true" aria-labelledby="focus-paywall-title">
-      <p class="focus-paywall-eyebrow">HERITAGE PACK</p>
-      <h2 class="focus-paywall-title" id="focus-paywall-title">Unlock Heritage Themes</h2>
-      <p class="focus-paywall-copy">
-        ✨ Unlock Heritage Themes Pack ($4.99) — Bring the soul of Porsche 911 &amp; Nissan GTR to your electric cabin.
+      <p class="focus-paywall-eyebrow" data-i18n="proEyebrow">AETHERIS PRO</p>
+      <h2 class="focus-paywall-title" id="focus-paywall-title" data-i18n="proTitle">Unlock Pro</h2>
+      <p class="focus-paywall-copy" data-i18n="proCopy">
+        ✨ Unlock Aetheris Pro ($4.99) — Premium soundscapes, long sessions, theater fullscreen & ASMR mixer.
       </p>
       <ul class="focus-paywall-perks">
-        <li>Porsche 911 instrument aura</li>
-        <li>Nissan GTR R-Mode cabin skin</li>
-        <li>Lifetime unlock · this device</li>
+        <li data-i18n="proPerk1">Premium soundscapes & therapy samples</li>
+        <li data-i18n="proPerk2">Sessions 20 min and longer</li>
+        <li data-i18n="proPerk3">Theater fullscreen · ASMR mixer</li>
       </ul>
       <div class="focus-paywall-actions">
-        <button type="button" class="focus-paywall-buy" id="focus-paywall-preview" data-paywall-preview>
-          立即预览 911 皮肤（开发解锁）
+        <button type="button" class="focus-paywall-buy" id="focus-paywall-preview" data-paywall-preview data-i18n="proPreview">
+          Preview unlock (dev)
         </button>
-        <a class="focus-paywall-buy focus-paywall-buy--ghost" id="focus-paywall-lemon" href="https://aetheris.lemonsqueezy.com/checkout/buy/heritage-themes" target="_blank" rel="noopener noreferrer">
+        <a class="focus-paywall-buy focus-paywall-buy--ghost" id="focus-paywall-lemon" href="https://aetheris.lemonsqueezy.com/checkout/buy/heritage-themes" target="_blank" rel="noopener noreferrer" data-i18n="proBuy">
           Buy with Lemon Squeezy · $4.99
         </a>
-        <button type="button" class="focus-paywall-dismiss" data-paywall-close>Maybe later</button>
+        <button type="button" class="focus-paywall-dismiss" data-paywall-close data-i18n="proLater">Maybe later</button>
       </div>
-      <p class="focus-paywall-note">点「立即预览」可先看表盘；正式上线后改为仅 Lemon Squeezy 购买。</p>
+      <p class="focus-paywall-note" data-i18n="proNote">Tap Preview to try first; production will use Lemon Squeezy only.</p>
     </div>
   </div>
 
   <script src="js/utils.js"></script>
+  <script src="js/i18n.js?v=1"></script>
   <script src="js/motion.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/ambient.js"></script>
+  <script src="js/pro.js?v=2"></script>
   <script src="js/timer-picker.js"></script>
-  <script src="js/tesla.js"></script>
+  <script src="js/tesla.js?v=2"></script>
   <script src="js/art.js"></script>
-  <script src="js/audio.js"></script>
+  <script src="js/audio.js?v=car1"></script>
   <script src="js/bookmark-hint.js"></script>
   <script src="js/nap-ambient.js"></script>
   <script src="js/nap-bg.js"></script>

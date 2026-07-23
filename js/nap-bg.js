@@ -1,28 +1,8 @@
 const NAP_SCENE_BACKGROUNDS = [
-  {
-    id: 'default',
-    label: '光景氛围',
-    desc: '呼吸 · 冥想 · 睡眠',
-    thumb: null,
-  },
-  {
-    id: 'garden',
-    label: '庭院晨光',
-    desc: '薰衣草与远山',
-    image: 'assets/backgrounds/garden.png',
-  },
-  {
-    id: 'coastal',
-    label: '海岸微风',
-    desc: '礁石与浅蓝海面',
-    image: 'assets/backgrounds/coastal.png',
-  },
-  {
-    id: 'dream',
-    label: '梦境原野',
-    desc: '浮光与青绿湖泊',
-    image: 'assets/backgrounds/dream.png',
-  },
+  { id: 'default', thumb: null },
+  { id: 'garden', image: 'assets/backgrounds/garden.png' },
+  { id: 'coastal', image: 'assets/backgrounds/coastal.png' },
+  { id: 'dream', image: 'assets/backgrounds/dream.png' },
 ];
 
 function initNapBackground(screen, triggerEl, cleanupFns) {
@@ -40,16 +20,20 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
   sheet.className = 'timer-sheet bg-sheet';
   sheet.innerHTML = `
     <div class="timer-sheet-backdrop" data-close></div>
-    <div class="timer-sheet-panel" role="dialog" aria-modal="true" aria-label="选择背景">
+    <div class="timer-sheet-panel" role="dialog" aria-modal="true" aria-label="">
       <div class="timer-sheet-handle"></div>
-      <p class="timer-sheet-title">场景背景</p>
-      <p class="timer-sheet-sub">与模式无关，可独立切换</p>
+      <p class="timer-sheet-title"></p>
+      <p class="timer-sheet-sub"></p>
       <div class="bg-sheet-grid"></div>
     </div>
   `;
   document.body.appendChild(sheet);
 
   const grid = sheet.querySelector('.bg-sheet-grid');
+  const titleEl = sheet.querySelector('.timer-sheet-title');
+  const subEl = sheet.querySelector('.timer-sheet-sub');
+  const panelEl = sheet.querySelector('.timer-sheet-panel');
+
   NAP_SCENE_BACKGROUNDS.forEach(bg => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -60,11 +44,23 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
       : '<span class="bg-sheet-thumb bg-sheet-thumb-default"></span>';
     btn.innerHTML = `
       ${thumbInner}
-      <span class="bg-sheet-card-label">${bg.label}</span>
-      <span class="bg-sheet-card-desc">${bg.desc}</span>
+      <span class="bg-sheet-card-label"></span>
+      <span class="bg-sheet-card-desc"></span>
     `;
     grid.appendChild(btn);
   });
+
+  function applySheetCopy() {
+    if (typeof I18n === 'undefined') return;
+    titleEl.textContent = I18n.t('napBgTitle');
+    subEl.textContent = I18n.t('napBgSub');
+    panelEl.setAttribute('aria-label', I18n.t('napBgTitle'));
+    grid.querySelectorAll('.bg-sheet-card').forEach((card) => {
+      const copy = I18n.napBgCopy(card.dataset.sceneBg);
+      card.querySelector('.bg-sheet-card-label').textContent = copy.label;
+      card.querySelector('.bg-sheet-card-desc').textContent = copy.desc;
+    });
+  }
 
   function isCustom() {
     return currentId !== 'default';
@@ -168,6 +164,7 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
   }
 
   function openSheet() {
+    applySheetCopy();
     syncActiveCards();
     sheet.classList.add('open');
     document.body.classList.add('timer-sheet-open');
@@ -201,6 +198,8 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
   }, { signal: ac.signal });
 
   apply(currentId, false);
+  applySheetCopy();
+  if (typeof I18n !== 'undefined') I18n.onChange(applySheetCopy);
 
   cleanupFns.push(() => {
     ac.abort();
