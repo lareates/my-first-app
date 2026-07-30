@@ -11,6 +11,10 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
 
   const STORAGE_KEY = 'nap-scene-bg';
   let currentId = localStorage.getItem(STORAGE_KEY) || 'default';
+  if (typeof ProGate !== 'undefined' && ProGate.isBackgroundLocked(currentId)) {
+    currentId = 'default';
+    localStorage.setItem(STORAGE_KEY, currentId);
+  }
   let motionOff = null;
   let particleCtx = null;
   let particles = [];
@@ -60,6 +64,7 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
       card.querySelector('.bg-sheet-card-label').textContent = copy.label;
       card.querySelector('.bg-sheet-card-desc').textContent = copy.desc;
     });
+    if (typeof ProGate !== 'undefined') ProGate.syncBackgroundLocks(sheet);
   }
 
   function isCustom() {
@@ -163,16 +168,19 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     syncAmbient();
   }
 
+  function closeSheet() {
+    sheet.classList.remove('open');
+    document.body.classList.remove('timer-sheet-open', 'bg-sheet-open');
+  }
+
   function openSheet() {
+    document.querySelectorAll('.timer-sheet.open').forEach((el) => {
+      if (el !== sheet) el.classList.remove('open');
+    });
     applySheetCopy();
     syncActiveCards();
     sheet.classList.add('open');
-    document.body.classList.add('timer-sheet-open');
-  }
-
-  function closeSheet() {
-    sheet.classList.remove('open');
-    document.body.classList.remove('timer-sheet-open');
+    document.body.classList.add('timer-sheet-open', 'bg-sheet-open');
   }
 
   triggerEl.addEventListener('click', (e) => {
@@ -187,10 +195,18 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
       return;
     }
     const card = e.target.closest('.bg-sheet-card');
-    if (card) {
-      apply(card.dataset.sceneBg);
+    if (!card) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = card.dataset.sceneBg;
+    const copy = typeof I18n !== 'undefined' ? I18n.napBgCopy(id) : { label: id };
+    if (typeof ProGate !== 'undefined' && ProGate.isBackgroundLocked(id)) {
       closeSheet();
+      ProGate.requirePro(copy.label, () => apply(id));
+      return;
     }
+    apply(id);
+    closeSheet();
   }, { signal: ac.signal });
 
   document.addEventListener('keydown', (e) => {
@@ -199,6 +215,7 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
 
   apply(currentId, false);
   applySheetCopy();
+  if (typeof ProGate !== 'undefined') ProGate.syncBackgroundLocks(sheet);
   if (typeof I18n !== 'undefined') I18n.onChange(applySheetCopy);
 
   cleanupFns.push(() => {
@@ -214,5 +231,7 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     getId: () => currentId,
     isCustom,
     apply,
+    closeSheet,
+    isSheetOpen: () => sheet.classList.contains('open'),
   };
 }

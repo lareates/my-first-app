@@ -12,9 +12,6 @@ const FocusTheme = (() => {
   const themes = ['default', 'porsche-911', 'gtr-rmode'];
   const PRO_THEMES = new Set(['porsche-911', 'gtr-rmode']);
   const STORAGE_THEME = 'aetheris-focus-theme';
-  const STORAGE_PRO = 'isPro';
-  /** 替换为你的 Lemon Squeezy 结账链接 */
-  const LEMON_CHECKOUT_URL = 'https://aetheris.lemonsqueezy.com/checkout/buy/heritage-themes';
 
   const THEME_META = {
     default: {
@@ -42,13 +39,13 @@ const FocusTheme = (() => {
   let pendingProTheme = 'porsche-911';
 
   function isPro() {
-    return localStorage.getItem(STORAGE_PRO) === 'true';
+    return typeof ProGate !== 'undefined' ? ProGate.isPro() : localStorage.getItem('aerocabin_pro_unlocked') === 'true';
   }
 
-  /** 开发调试：localStorage.setItem('isPro','true') */
   function setPro(flag) {
-    if (flag) localStorage.setItem(STORAGE_PRO, 'true');
-    else localStorage.removeItem(STORAGE_PRO);
+    if (typeof ProGate !== 'undefined') ProGate.setPro(flag);
+    else if (flag) localStorage.setItem('aerocabin_pro_unlocked', 'true');
+    else localStorage.removeItem('aerocabin_pro_unlocked');
   }
 
   function themeCssClass(id) {
@@ -90,13 +87,16 @@ const FocusTheme = (() => {
 
   function openPaywall(forTheme = 'porsche-911') {
     pendingProTheme = forTheme;
+    const meta = THEME_META[forTheme] || THEME_META['porsche-911'];
+    if (typeof ProGate !== 'undefined') {
+      ProGate.openPaywall(meta.label, () => unlockAndApplyPending());
+      return;
+    }
     const modal = ensureModal();
     if (!modal) {
       console.warn('[FocusTheme] paywall modal missing');
       return;
     }
-    const lemon = modal.querySelector('#focus-paywall-lemon');
-    if (lemon) lemon.href = LEMON_CHECKOUT_URL;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('focus-paywall-open');
@@ -137,7 +137,6 @@ const FocusTheme = (() => {
   }
 
   function unlockAndApplyPending() {
-    setPro(true);
     const target = PRO_THEMES.has(pendingProTheme) ? pendingProTheme : 'porsche-911';
     setTheme(target, { force: true });
     if (typeof ProGate !== 'undefined') ProGate.syncAllLocks();
@@ -183,11 +182,6 @@ const FocusTheme = (() => {
     }, { signal: ac.signal });
 
     modalEl?.addEventListener('click', (e) => {
-      if (e.target.closest('[data-paywall-preview]')) {
-        e.preventDefault();
-        unlockAndApplyPending();
-        return;
-      }
       if (e.target.closest('[data-paywall-close]')) {
         e.preventDefault();
         closePaywall();

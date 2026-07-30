@@ -50,12 +50,33 @@ function setFocusStatus(state) {
 }
 
 function triggerCompletionEffects(wasPomodoro) {
+  const COMPLETE_MS = 10000;
+  const screen = document.getElementById('scene-focus');
+  const display = document.getElementById('timer-display');
   const ripple = document.getElementById('focus-ripple');
+
+  screen?.classList.add('focus-complete-flash');
+  display?.classList.add('timer-complete-pulse');
+  window.setTimeout(() => {
+    screen?.classList.remove('focus-complete-flash');
+    display?.classList.remove('timer-complete-pulse');
+  }, COMPLETE_MS);
+
   ripple.classList.remove('active');
   void ripple.offsetWidth;
   ripple.classList.add('active');
-  AudioEngine.playSingingBowl();
-  setTimeout(() => ripple.classList.remove('active'), 2600);
+  window.setTimeout(() => ripple.classList.remove('active'), COMPLETE_MS);
+
+  if (navigator.vibrate) {
+    try { navigator.vibrate([100, 80, 160, 80, 120]); } catch { /* ignore */ }
+  }
+
+  AudioEngine.resume?.().then(() => {
+    AudioEngine.playSingingBowl({ duration: 10 });
+  }).catch(() => {
+    AudioEngine.playSingingBowl({ duration: 10 });
+  });
+
   if (wasPomodoro) setFocusStatus('break');
   else setFocusStatus('idle');
 }
@@ -226,7 +247,7 @@ function startTimer(sessionEl) {
       if (timerSeconds <= 0) {
         timerSeconds = 0;
         const wasPomodoro = timerMode === 'pomodoro';
-        pauseTimer();
+        pauseTimer(true);
         sessionCount++;
         todayMinutes += Math.round((timerInitial || 25 * 60) / 60);
         refreshFocusSessionLine();
@@ -244,12 +265,12 @@ function startTimer(sessionEl) {
   }, 1000);
 }
 
-function pauseTimer() {
+function pauseTimer(keepStatus = false) {
   timerRunning = false;
   document.getElementById('timer-start').textContent = I18n.t('timerStart');
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
-  if (focusStatusState !== 'break') {
+  if (!keepStatus && focusStatusState !== 'break') {
     setFocusStatus('idle');
   }
 }

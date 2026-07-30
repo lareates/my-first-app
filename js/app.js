@@ -10,13 +10,8 @@ const cleanupFns = [];
 
 initIcons();
 
-['touchstart', 'click'].forEach(evt => {
-  document.addEventListener(evt, () => {
-    AudioEngine.resume().then(() => {
-      if (!AudioEngine.LOW_POWER) AudioEngine.preloadAllSamples?.();
-    });
-  }, { once: true, passive: true });
-});
+// 不在首次任意触摸时唤醒 AudioContext，避免车机误切回蓝牙/USB 音乐
+// 音频解锁由播放键、调音台、全屏按钮等显式交互负责
 
 function showScene(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));

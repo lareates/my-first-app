@@ -9,15 +9,21 @@ const BookmarkHint = (() => {
       || screen.querySelector('.bookmark-hint-anchor');
   }
 
+  function hintCopy() {
+    return typeof I18n !== 'undefined'
+      ? I18n.t('bookmarkHint')
+      : 'Tap the browser ★ star (top-right) to bookmark this app';
+  }
+
   function createHint() {
     const hint = document.createElement('button');
     hint.type = 'button';
     hint.className = 'bookmark-hint';
     hint.hidden = true;
-    hint.setAttribute('aria-label', '收藏本站，以便下次快速进入');
+    hint.setAttribute('aria-label', hintCopy());
     hint.innerHTML = `
       <span class="ico bookmark-hint-star" data-icon="favorite"></span>
-      <span class="bookmark-hint-text">收藏我，以便下次快速进入</span>
+      <span class="bookmark-hint-text"></span>
     `;
     return hint;
   }
@@ -34,6 +40,9 @@ const BookmarkHint = (() => {
       hintEl = createHint();
       initIcons();
     }
+
+    hintEl.querySelector('.bookmark-hint-text').textContent = hintCopy();
+    hintEl.setAttribute('aria-label', hintCopy());
 
     if (hintEl.parentElement !== anchor) {
       hintEl.classList.remove('visible');

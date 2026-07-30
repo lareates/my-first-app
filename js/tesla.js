@@ -1,4 +1,4 @@
-/** 特斯拉 / 车机浏览器音频解锁 + 剧院模式（Theater Mode） */
+/** 特斯拉 / 车机浏览器音频解锁 + 浏览器全屏 */
 const APP_CANONICAL = 'https://lareates.github.io/my-first-app/';
 const THEATER_FLAG = 'aetheris-theater';
 /** 国行全屏跳板：须为「无路径」根站，才能通过 1905 校验（与 s3xy.top 同理） */
@@ -12,10 +12,6 @@ async function unlockAndPlay(playFn) {
   } catch (e) {
     console.error('Audio unlock failed', e);
   }
-}
-
-function showAudioToast(show, msg) {
-  return { show, msg };
 }
 
 function bindCarPlay(btn, toggleFn) {
@@ -39,14 +35,90 @@ function bindCarPlay(btn, toggleFn) {
   btn.addEventListener('click', run);
 }
 
+function theaterLabel() {
+  return typeof I18n !== 'undefined' ? I18n.t('theaterCn') : 'Browser Fullscreen';
+}
+
+function buildTheaterReturnQuery() {
+  const q = new URLSearchParams(location.search);
+  q.set('theater', '1');
+  q.delete('resetPro');
+  if (typeof ProGate !== 'undefined' && ProGate.isPro()) q.set('pro', '1');
+  return q.toString();
+}
+
+function preserveProBeforeRedirect() {
+  if (typeof ProGate !== 'undefined') ProGate.preserveForNavigation?.();
+}
+
+async function tryBrowserFullscreen() {
+  try {
+    const el = document.documentElement;
+    const active = document.fullscreenElement || document.webkitFullscreenElement;
+    if (active) {
+      if (document.exitFullscreen) await document.exitFullscreen();
+      else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+      return true;
+    }
+    if (el.requestFullscreen) {
+      await el.requestFullscreen();
+      return true;
+    }
+    if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+      return true;
+    }
+  } catch (e) {
+    console.warn('[Theater] Fullscreen API unavailable', e);
+  }
+  return false;
+}
+
 /**
- * 原理说明（与 s3xy / kylehe 博客同类，不经过 s3xy.top）：
- * - 车机顶部白色地址栏是系统 chrome，网页 JS 藏不掉
- * - 国行：腾讯视频 search_redirect → 1905 open redirect → 回流目标站
- * - 1905 校验很粗暴：取「// 之后到第一个 /」的字符串，需以 1905.com 等结尾
- * - 因此目标必须是「根域名 + ?…&www.1905.com」（不能带 /my-first-app/ 路径）
- * - s3xy 能回去是因为它自己就是根域名；我们用 lareates.github.io 根站做跳板再进 App
+ * 车机触控：全屏按钮需独立绑定 touchend，document 委托在 QtWebEngine 上常失效
  */
+function bindTheaterButton(btn) {
+  if (!btn || btn.dataset.theaterBound === '1') return;
+  btn.dataset.theaterBound = '1';
+
+  let last = 0;
+  let touchHandled = false;
+
+  const run = (e) => {
+    if (btn.hidden) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const now = Date.now();
+    if (now - last < 400) return;
+    if (e.type === 'click' && touchHandled) {
+      touchHandled = false;
+      return;
+    }
+    last = now;
+    if (e.type === 'touchend') touchHandled = true;
+
+    const type = btn.dataset.theater;
+    const label = theaterLabel();
+
+    const enter = async () => {
+      // 优先使用浏览器原生全屏，不跳转外链，避免 Pro 状态丢失
+      if (await tryBrowserFullscreen()) return;
+
+      preserveProBeforeRedirect();
+      if (type === 'cn') enterTeslaTheaterModeChina();
+      else if (type === 'yt') enterTeslaTheaterModeViaYouTube();
+    };
+
+    unlockAndPlay(() => {
+      if (typeof ProGate !== 'undefined' && !ProGate.requirePro(label, enter)) return;
+      enter();
+    });
+  };
+
+  btn.addEventListener('touchend', run, { passive: false });
+  btn.addEventListener('click', run);
+}
+
 function getAppUrl() {
   try {
     const path = location.pathname.replace(/index\.html$/i, '');
@@ -60,21 +132,22 @@ function getAppUrl() {
 function getTheaterReturnUrl() {
   try {
     const url = new URL(getAppUrl());
-    url.searchParams.set('theater', '1');
+    url.search = `?${buildTheaterReturnQuery()}`;
     return url.toString();
   } catch {
-    return `${APP_CANONICAL}?theater=1`;
+    const pro = (typeof ProGate !== 'undefined' && ProGate.isPro()) ? '&pro=1' : '';
+    return `${APP_CANONICAL}?theater=1${pro}`;
   }
 }
 
 /**
- * 构造能通过 1905 校验的回流地址（与 s3xy 完全同型）：
- *   https://lareates.github.io?www.1905.com
- * 不能带 /my-first-app/ 路径，否则 1905 会把你踢回电影网首页。
- * 根站 theater-root/index.html 再 302 到真正的 App。
+ * 构造能通过 1905 校验的回流地址，并带上当前应用路径与 Pro 恢复参数
  */
 function getChinaTheaterBounceUrl() {
-  return `${THEATER_BOUNCE_ORIGIN}?www.1905.com`;
+  let path = location.pathname.replace(/\/index\.html$/i, '');
+  if (!path.endsWith('/')) path += '/';
+  const to = encodeURIComponent(`${path}?${buildTheaterReturnQuery()}`);
+  return `${THEATER_BOUNCE_ORIGIN}?www.1905.com&to=${to}`;
 }
 
 function isTheaterMode() {
@@ -104,13 +177,12 @@ function markTheaterMode() {
   } catch {}
 }
 
-/**
- * 国内：与 s3xy「跳转全屏」同一链路，但落地页是我们自己的站
- * 腾讯视频 → 1905 → lareates.github.io 跳板 → my-first-app（全屏态）
- */
 function enterTeslaTheaterModeChina() {
-  // 编码方式对齐 s3xy：外层 url= 做一次 encode，避免查询串被截断；
-  // 同时保持「腾讯视频 → 1905 → 自己的根站」自动跳转（白名单内无需「确认前往」）。
+  if (location.origin !== THEATER_BOUNCE_ORIGIN) {
+    console.warn('[Theater] China redirect only returns to', THEATER_BOUNCE_ORIGIN, '- use deployed URL or native fullscreen');
+    tryBrowserFullscreen();
+    return;
+  }
   const bounce = getChinaTheaterBounceUrl();
   const redirect1905 = `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(bounce)}`;
   const finalUrl = `https://v.qq.com/search_redirect.html?url=${encodeURIComponent(redirect1905)}`;
@@ -118,7 +190,6 @@ function enterTeslaTheaterModeChina() {
   location.href = finalUrl;
 }
 
-/** 海外：YouTube redirect → 确认后回流本站 */
 function enterTeslaTheaterModeViaYouTube() {
   const target = getTheaterReturnUrl();
   try { sessionStorage.setItem(THEATER_FLAG, '1'); } catch {}
@@ -143,7 +214,6 @@ function isChinaBrowserRegion() {
   return false;
 }
 
-/** 调试：localStorage.setItem('aetheris-theater-region','cn'|'intl') */
 function syncTheaterButtons() {
   const useCn = isChinaBrowserRegion();
   document.querySelectorAll('.aura-theater-btn').forEach((btn) => {
@@ -152,6 +222,10 @@ function syncTheaterButtons() {
     btn.hidden = !show;
     btn.toggleAttribute('hidden', !show);
     btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+    if (typeof I18n !== 'undefined') {
+      btn.textContent = I18n.t(useCn ? 'theaterCn' : 'theaterYt');
+    }
+    bindTheaterButton(btn);
   });
   if (typeof ProGate !== 'undefined') ProGate.syncTheaterLocks();
 }
@@ -160,25 +234,6 @@ function initTheaterModeUi() {
   if (isTheaterMode()) markTheaterMode();
   syncTheaterButtons();
   if (typeof I18n !== 'undefined') I18n.onChange(syncTheaterButtons);
-
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.aura-theater-btn');
-    if (!btn) return;
-
-    e.preventDefault();
-    const type = btn.dataset.theater;
-    const label = type === 'cn'
-      ? (typeof I18n !== 'undefined' ? I18n.t('theaterCn') : 'Tencent Fullscreen')
-      : (typeof I18n !== 'undefined' ? I18n.t('theaterYt') : 'YT Fullscreen');
-
-    const enter = () => {
-      if (type === 'cn') enterTeslaTheaterModeChina();
-      else if (type === 'yt') enterTeslaTheaterModeViaYouTube();
-    };
-
-    if (typeof ProGate !== 'undefined' && !ProGate.requirePro(label, enter)) return;
-    enter();
-  });
 }
 
 if (document.readyState === 'loading') {

@@ -10,6 +10,8 @@
   --aura-outline: #988e90;
   --aura-camp: #f0c060;
   --aura-margin: clamp(24px, 5vw, 64px);
+  --aura-min-font: 12px;
+  --aura-header-inset-right: clamp(3.5rem, 8vw, 5.5rem);
   --font-manrope: system-ui, -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
   --font-space: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
@@ -46,6 +48,7 @@
   background: var(--aura-bg);
   color: var(--aura-on-surface);
   font-family: var(--font-manrope);
+  font-size: var(--aura-min-font);
   overflow: hidden;
   flex-direction: column;
 }
@@ -60,6 +63,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 2rem var(--aura-margin);
+  padding-right: calc(var(--aura-margin) + var(--aura-header-inset-right));
   background: transparent;
   pointer-events: none;
 }
@@ -80,13 +84,16 @@
 .aura-header-right {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.65rem;
+  flex-shrink: 0;
 }
 
 .aura-theater-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .aura-theater-btn {
@@ -95,15 +102,17 @@
   background: rgba(255, 255, 255, 0.03);
   color: rgba(226, 226, 226, 0.85);
   font-family: var(--font-space);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  padding: 0.5rem 0.85rem;
+  font-size: max(var(--aura-min-font), 12px);
+  letter-spacing: 0.06em;
+  padding: 0.55rem 0.9rem;
   border-radius: 999px;
   cursor: pointer;
   transition: border-color 0.25s, background 0.25s, color 0.25s;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
+  pointer-events: auto;
+  min-height: 2.5rem;
 }
 .aura-theater-btn[hidden] {
   display: none !important;
@@ -322,6 +331,23 @@
 .timer-sheet.open .timer-sheet-panel {
   transform: translateY(0);
 }
+/* 壁纸选择器：居中弹窗，不与底部声景栏重叠 */
+.timer-sheet.bg-sheet {
+  align-items: center;
+  padding: 1.5rem;
+}
+.timer-sheet.bg-sheet .timer-sheet-panel {
+  margin-bottom: 0;
+  max-height: min(52vh, 24rem);
+  overflow-y: auto;
+}
+.timer-sheet.bg-sheet.open .timer-sheet-panel {
+  transform: translateY(0);
+}
+body.bg-sheet-open #scene-nap .nap-soundscapes-scroll {
+  opacity: 0.45;
+  pointer-events: none;
+}
 .timer-sheet-handle {
   width: 2.5rem;
   height: 3px;
@@ -403,33 +429,34 @@ body.timer-sheet-open { overflow: hidden; }
 /* Nap 场景背景切换 */
 .nap-bg-btn-wrap {
   position: relative;
-  margin-left: auto;
+  margin-left: 0;
+  flex-shrink: 0;
 }
-.nap-bg-btn { margin-left: 0; }
+.nap-bg-btn { margin-left: 0; min-width: 2.5rem; min-height: 2.5rem; }
 .bookmark-hint-anchor {
   position: relative;
-  margin-left: auto;
+  margin-left: 0;
   width: 2.5rem;
   height: 2.5rem;
   flex-shrink: 0;
 }
 .bookmark-hint {
-  --hint-star-offset: 2.75rem;
+  --hint-star-offset: 0.5rem;
   position: absolute;
   top: calc(100% + 0.65rem);
-  right: 0.5rem;
+  right: calc(-1 * var(--aura-header-inset-right) + 0.5rem);
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.55rem 0.85rem;
+  padding: 0.65rem 0.9rem;
   border: 1px solid rgba(255, 220, 120, 0.35);
   border-radius: 999px;
   background: rgba(18, 20, 24, 0.88);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   color: var(--aura-on-surface);
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
+  font-size: max(var(--aura-min-font), 12px);
+  letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: pointer;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), 0 0 24px rgba(255, 200, 100, 0.12);
@@ -437,16 +464,16 @@ body.timer-sheet-open { overflow: hidden; }
   transform: translateY(-6px) scale(0.96);
   transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
   visibility: hidden;
-  z-index: 60;
+  z-index: 45;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  max-width: min(22rem, calc(100vw - 2rem));
 }
 .bookmark-hint::before {
   content: '';
   position: absolute;
   top: -6px;
-  /* 左移一个浏览器工具栏图标宽度，对准五角星收藏按钮 */
-  right: calc(0.75rem + var(--hint-star-offset));
+  right: calc(var(--aura-header-inset-right) - 0.35rem);
   width: 10px;
   height: 10px;
   background: rgba(18, 20, 24, 0.88);
@@ -1209,11 +1236,25 @@ html.heritage-ui-off .porsche-cluster {
 }
 .aura-theater-btn.pro-locked,
 .nap-sound-chip.pro-locked,
-.timer-sheet-option.pro-locked {
+.timer-sheet-option.pro-locked,
+.bg-sheet-card.pro-locked {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.bg-sheet-card.pro-locked {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.bg-sheet-card.pro-locked .pro-key {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  margin-right: 0;
 }
 .timer-sheet-option.pro-locked .pro-key {
   margin-right: 0.25rem;
@@ -1444,6 +1485,77 @@ html.heritage-ui-off .porsche-cluster {
   height: 4px;
   border-radius: 50%;
   background: rgba(210,187,255,0.7);
+}
+.focus-paywall-license {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+.focus-paywall-license-label {
+  font-family: var(--font-space);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(207,196,197,0.55);
+}
+.focus-paywall-license-row {
+  display: flex;
+  gap: 0.45rem;
+}
+.focus-paywall-license-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(235,230,231,0.95);
+  font-size: 0.82rem;
+  font-family: var(--font-manrope);
+}
+.focus-paywall-license-input::placeholder {
+  color: rgba(152,142,144,0.55);
+}
+.focus-paywall-license-input:focus {
+  outline: none;
+  border-color: rgba(245,165,36,0.45);
+  box-shadow: 0 0 0 2px rgba(245,165,36,0.12);
+}
+.focus-paywall-license-input:disabled {
+  opacity: 0.55;
+}
+.focus-paywall-license-btn {
+  flex-shrink: 0;
+  padding: 0 0.95rem;
+  border-radius: 10px;
+  border: 1px solid rgba(245,165,36,0.35);
+  background: rgba(245,165,36,0.12);
+  color: rgba(255,224,170,0.95);
+  font-family: var(--font-space);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.focus-paywall-license-btn:hover:not(:disabled) {
+  background: rgba(245,165,36,0.2);
+}
+.focus-paywall-license-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.focus-paywall-status {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(207,196,197,0.75);
+}
+.focus-paywall-status.is-success {
+  color: rgba(134, 220, 160, 0.95);
+}
+.focus-paywall-status.is-error {
+  color: rgba(255, 140, 140, 0.95);
 }
 .focus-paywall-actions {
   display: flex;
@@ -1778,11 +1890,36 @@ body.focus-paywall-open { overflow: hidden; }
   opacity: 0;
 }
 .focus-ripple.active {
-  animation: rippleGlow 2.5s ease-out forwards;
+  animation: rippleGlow 10s ease-out forwards;
+}
+#scene-focus.focus-complete-flash::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  animation: focusCompleteFlash 10s ease-out forwards;
+}
+.timer-display.timer-complete-pulse {
+  animation: timerCompletePulse 10s ease-out;
+  color: #ffe8a8 !important;
+}
+@keyframes focusCompleteFlash {
+  0% { background: radial-gradient(circle at 50% 42%, rgba(255, 220, 140, 0.48) 0%, transparent 52%); opacity: 0; }
+  8% { opacity: 1; }
+  70% { opacity: 0.65; background: radial-gradient(circle at 50% 42%, rgba(255, 220, 140, 0.28) 0%, transparent 58%); }
+  100% { opacity: 0; background: radial-gradient(circle at 50% 42%, transparent 0%, transparent 70%); }
+}
+@keyframes timerCompletePulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+  10% { transform: scale(1.08); filter: drop-shadow(0 0 22px rgba(255, 220, 140, 0.65)); }
+  35% { transform: scale(1.03); filter: drop-shadow(0 0 14px rgba(255, 220, 140, 0.4)); }
+  60% { transform: scale(1.05); filter: drop-shadow(0 0 18px rgba(255, 220, 140, 0.35)); }
 }
 @keyframes rippleGlow {
-  0% { opacity: 0; background: radial-gradient(circle at 50% 50%, rgba(210,187,255,0.35) 0%, transparent 8%); }
-  30% { opacity: 1; }
+  0% { opacity: 0; background: radial-gradient(circle at 50% 50%, rgba(255, 220, 140, 0.45) 0%, transparent 12%); }
+  12% { opacity: 1; }
+  75% { opacity: 0.55; background: radial-gradient(circle at 50% 50%, rgba(255, 220, 140, 0.18) 0%, transparent 45%); }
   100% { opacity: 0; background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 70%); }
 }
 
@@ -1898,7 +2035,7 @@ body.focus-paywall-open { overflow: hidden; }
     padding-bottom: calc(1.5rem + max(env(safe-area-inset-bottom, 0px), 16px));
   }
   .horizon-modes { gap: 0.25rem; }
-  .horizon-mode { padding: 0.5rem 0.65rem; font-size: 9px; }
+  .horizon-mode { padding: 0.5rem 0.75rem; font-size: max(12px, 0.8125rem); min-height: 2.5rem; }
   .horizon-mode span:last-child { display: none; }
   .horizon-bar {
     padding: 0.75rem 0.875rem;
@@ -1911,16 +2048,15 @@ body.focus-paywall-open { overflow: hidden; }
     flex-shrink: 0;
   }
   .bookmark-hint {
-    --hint-star-offset: 2.5rem;
-    right: 0;
+    right: calc(-1 * var(--aura-header-inset-right) + 0.25rem);
     max-width: calc(100vw - 2.5rem);
     white-space: normal;
     text-align: left;
     border-radius: 1rem;
-    padding: 0.6rem 0.8rem;
+    padding: 0.7rem 0.85rem;
   }
   .bookmark-hint::before {
-    right: calc(0.75rem + var(--hint-star-offset));
+    right: calc(var(--aura-header-inset-right) - 0.25rem);
   }
   .timer-sheet-grid { grid-template-columns: repeat(2, 1fr); }
   .horizon-volume {
@@ -1965,9 +2101,30 @@ body.focus-paywall-open { overflow: hidden; }
 }
 @media (min-width: 900px) {
   .bookmark-hint {
-    --hint-star-offset: 3.25rem;
-    right: 0.75rem;
+    right: calc(-1 * var(--aura-header-inset-right) + 0.75rem);
   }
+}
+
+/* ─── 车机可读性：关键控件最小 12px ─── */
+.aura-screen :is(
+  .horizon-mode,
+  .nap-sound-chip,
+  .cell-label,
+  .tab,
+  .preset,
+  .action-btn,
+  .oasis-fader-label,
+  .focus-paywall-eyebrow,
+  .focus-paywall-license-label,
+  .focus-paywall-license-btn,
+  .timer-sheet-option,
+  .bg-sheet-card-label,
+  .bg-sheet-card-desc,
+  .aura-label,
+  .focus-paywall-note,
+  .focus-paywall-status
+) {
+  font-size: max(var(--aura-min-font), 12px);
 }
 
 /* 车机横屏：声景按钮再放大一档，方便手指点按 */

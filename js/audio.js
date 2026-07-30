@@ -6,8 +6,18 @@ const AudioEngine = (() => {
   const CROSSFADE_SEC = 3.0;
   const FADE_OUT_SEC = 2.5;
   const FADE_IN_SEC = 2.0;
+  const MODE_SWITCH_FADE_OUT = 0.45;
+  const MODE_SWITCH_FADE_IN = 0.65;
   const LOOKAHEAD_SEC = 30.0; // 提前调度 30 秒，防止车机后台节流
   const SCHEDULER_MS = 1000;
+  /** 车机浏览器输出偏轻，适度抬升主音量 */
+  const MASTER_GAIN = (() => {
+    try {
+      const v = localStorage.getItem('aetheris-master-gain');
+      if (v) return Math.max(1, Math.min(2.5, parseFloat(v)));
+    } catch { /* ignore */ }
+    return /Tesla|QtCarBrowser|QtWebEngine/i.test(navigator.userAgent || '') ? 1.75 : 1.35;
+  })();
 
   /** 21 款特斯拉等低性能车机：流媒体循环，避免 decodeAudioData 爆内存 */
   function isLowPowerDevice() {
@@ -130,7 +140,7 @@ const AudioEngine = (() => {
     if (ctx) return ctx;
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
-    master.gain.value = 1;
+    master.gain.value = MASTER_GAIN;
     master.connect(ctx.destination);
 
     reverb = ctx.createConvolver();
@@ -140,6 +150,25 @@ const AudioEngine = (() => {
     reverb.connect(reverbSend);
     reverbSend.connect(master);
     return ctx;
+  }
+
+  function claimMediaSession(title = 'Aetheris · Cabin Space') {
+    try {
+      if (!navigator.mediaSession) return;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title,
+        artist: 'Aetheris',
+        album: 'Cabin Space',
+      });
+      navigator.mediaSession.playbackState = 'playing';
+    } catch { /* ignore */ }
+  }
+
+  function releaseMediaSession() {
+    try {
+      if (!navigator.mediaSession) return;
+      navigator.mediaSession.playbackState = 'none';
+    } catch { /* ignore */ }
   }
 
   function buildImpulse(c, duration, decay) {
@@ -422,6 +451,7 @@ const AudioEngine = (() => {
 
       this.nextStart = t;
       this._scheduleAhead(gen);
+      claimMediaSession(`Aetheris · ${preset.label || presetKey}`);
     }
 
     setVolume(volume) {
@@ -480,13 +510,10 @@ const AudioEngine = (() => {
   }
 
   /**
-   * 车机轻量播放器：HTML5 Audio 循环 + MediaElementSource
-   * 不整段 decode 到 PCM，避免阿童木浏览器 OOM / 崩溃
+   * 车机轻量播放器：双 HTMLAudio 交叉淡化，避免 loop=true 断点
    */
   class MediaLoopPlayer {
     constructor() {
-      this.el = null;
-      this.source = null;
       this.filter = null;
       this.pan = null;
       this.bus = null;
@@ -498,6 +525,13 @@ const AudioEngine = (() => {
       this.stopTimer = null;
       this.panLfo = null;
       this.presetKey = null;
+      this.presetUrl = null;
+      this.slotA = null;
+      this.slotB = null;
+      this.leadSlot = 'A';
+      this.crossfadeToken = 0;
+      this.watchId = null;
+      this.crossfading = false;
     }
 
     _effectiveVolume() {
@@ -545,6 +579,13 @@ const AudioEngine = (() => {
       this.panLfo = lfo;
     }
 
+    _clearWatch() {
+      if (this.watchId != null) {
+        clearInterval(this.watchId);
+        this.watchId = null;
+      }
+    }
+
     _waitForMedia(el, timeoutMs = 15000) {
       return new Promise((resolve, reject) => {
         if (el.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
@@ -570,15 +611,107 @@ const AudioEngine = (() => {
       });
     }
 
-    _teardownMedia() {
-      this._stopPanLfo();
-      if (this.el) {
-        try { this.el.pause(); } catch {}
-        try { this.el.removeAttribute('src'); this.el.load(); } catch {}
-        this.el = null;
+    async _createSlot(url) {
+      const el = new Audio(url);
+      el.preload = 'auto';
+      el.playsInline = true;
+      el.loop = false;
+      await this._waitForMedia(el);
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 0;
+      const source = ctx.createMediaElementSource(el);
+      source.connect(gainNode);
+      gainNode.connect(this.filter);
+      return { el, source, gainNode };
+    }
+
+    _lead() {
+      return this.leadSlot === 'A' ? this.slotA : this.slotB;
+    }
+
+    _follow() {
+      return this.leadSlot === 'A' ? this.slotB : this.slotA;
+    }
+
+    _swapLead() {
+      this.leadSlot = this.leadSlot === 'A' ? 'B' : 'A';
+    }
+
+    async _startSlot(slot, { fadeIn = FADE_IN_SEC, fromTime = 0 } = {}) {
+      if (!slot?.el) return;
+      slot.el.currentTime = fromTime;
+      const t = ctx.currentTime;
+      slot.gainNode.gain.cancelScheduledValues(t);
+      slot.gainNode.gain.setValueAtTime(0, t);
+      slot.gainNode.gain.linearRampToValueAtTime(1, t + Math.max(0.05, fadeIn));
+      await slot.el.play();
+    }
+
+    async _crossfadeToFollow() {
+      if (!this.active || this.crossfading) return;
+      const lead = this._lead();
+      const follow = this._follow();
+      if (!lead?.el || !follow?.el) return;
+
+      this.crossfading = true;
+      const token = ++this.crossfadeToken;
+      const xf = Math.min(CROSSFADE_SEC, 2.8);
+      const t = ctx.currentTime;
+
+      try {
+        follow.el.currentTime = 0;
+        await follow.el.play();
+      } catch (err) {
+        this.crossfading = false;
+        console.warn('[Audio] media crossfade play failed', err);
+        return;
       }
-      try { this.source?.disconnect(); } catch {}
-      this.source = null;
+
+      lead.gainNode.gain.cancelScheduledValues(t);
+      lead.gainNode.gain.setValueAtTime(lead.gainNode.gain.value, t);
+      lead.gainNode.gain.linearRampToValueAtTime(0, t + xf);
+
+      follow.gainNode.gain.cancelScheduledValues(t);
+      follow.gainNode.gain.setValueAtTime(follow.gainNode.gain.value, t);
+      follow.gainNode.gain.linearRampToValueAtTime(1, t + xf);
+
+      setTimeout(() => {
+        if (token !== this.crossfadeToken || !this.active) return;
+        try { lead.el.pause(); } catch {}
+        lead.gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        this._swapLead();
+        this.crossfading = false;
+      }, xf * 1000 + 80);
+    }
+
+    _startWatch() {
+      this._clearWatch();
+      this.watchId = setInterval(() => {
+        if (!this.active || this.crossfading) return;
+        const lead = this._lead();
+        const dur = lead?.el?.duration;
+        if (!dur || !isFinite(dur)) return;
+        const remaining = dur - lead.el.currentTime;
+        if (remaining <= CROSSFADE_SEC + 0.2 && remaining > 0.05) {
+          this._crossfadeToFollow();
+        }
+      }, 180);
+    }
+
+    _teardownMedia() {
+      this._clearWatch();
+      this.crossfadeToken += 1;
+      this.crossfading = false;
+      this._stopPanLfo();
+      [this.slotA, this.slotB].forEach((slot) => {
+        if (!slot) return;
+        try { slot.el.pause(); } catch {}
+        try { slot.el.removeAttribute('src'); slot.el.load(); } catch {}
+        try { slot.source?.disconnect(); } catch {}
+        try { slot.gainNode?.disconnect(); } catch {}
+      });
+      this.slotA = null;
+      this.slotB = null;
       try { this.filter?.disconnect(); } catch {}
       try { this.pan?.disconnect(); } catch {}
       try { this.wet?.disconnect(); } catch {}
@@ -604,29 +737,28 @@ const AudioEngine = (() => {
       this.stopImmediate();
       this._buildGraph();
       this.presetKey = presetKey;
+      this.presetUrl = preset.url;
       this.presetGain = typeof preset.gain === 'number' ? preset.gain : 1;
       this.userVolume = Math.max(0, Math.min(1, volume));
       this.filter.frequency.value = preset.lowpass;
+      this.leadSlot = 'A';
 
-      const el = new Audio(preset.url);
-      el.loop = true;
-      el.preload = 'auto';
-      el.playsInline = true;
       if (preset.panDrift) this._startPanDrift();
       else this.pan.pan.value = 0;
 
-      await this._waitForMedia(el);
-      this.el = el;
-      this.source = ctx.createMediaElementSource(el);
-      this.source.connect(this.filter);
+      this.slotA = await this._createSlot(preset.url);
+      this.slotB = await this._createSlot(preset.url);
+      await this._startSlot(this.slotA, { fadeIn: 0 });
+      this.slotB.gainNode.gain.setValueAtTime(0, ctx.currentTime);
 
       const t = ctx.currentTime;
       this.bus.gain.cancelScheduledValues(t);
       this.bus.gain.setValueAtTime(0, t);
       this.bus.gain.linearRampToValueAtTime(this._effectiveVolume(), t + Math.max(0.05, fadeIn));
 
-      await el.play();
       this.active = true;
+      this._startWatch();
+      claimMediaSession(`Aetheris · ${preset.label || presetKey}`);
     }
 
     setVolume(volume) {
@@ -646,6 +778,7 @@ const AudioEngine = (() => {
       }
 
       this.active = false;
+      this._clearWatch();
       const t = ctx.currentTime;
       const current = this.bus.gain.value;
       this.bus.gain.cancelScheduledValues(t);
@@ -674,6 +807,7 @@ const AudioEngine = (() => {
       }
       this._teardownMedia();
       this.presetKey = null;
+      this.presetUrl = null;
     }
   }
 
@@ -1020,6 +1154,7 @@ const AudioEngine = (() => {
         if (woven.bus && woven.mod) woven.mod();
       }, 90);
     }
+    claimMediaSession(`Aetheris · ${mode}`);
   }
 
   function setWovenVolume(volume) {
@@ -1029,24 +1164,26 @@ const AudioEngine = (() => {
     woven.bus.gain.setTargetAtTime(Math.max(0, Math.min(1, volume)), t, 0.12);
   }
 
-  async function stopNapLayers(fade = FADE_OUT_SEC) {
+  function stopNapLayers(fade = FADE_OUT_SEC) {
     const jobs = [];
     if (napPlayer.active) jobs.push(fade <= 0 ? (napPlayer.stopImmediate(), null) : napPlayer.fadeOut(fade));
     if (woven.bus) jobs.push(fade <= 0 ? (stopWovenImmediate(), null) : fadeOutWoven(fade));
-    await Promise.all(jobs.filter(Boolean));
-    if (fade <= 0) {
-      napPlayer.stopImmediate();
-      stopWovenImmediate();
-    }
+    return Promise.all(jobs.filter(Boolean)).then(() => {
+      if (fade <= 0) {
+        napPlayer.stopImmediate();
+        stopWovenImmediate();
+      }
+    });
   }
 
-  function startNapAudio(mode = 'meditate', volume = 77, soundscape = 'woven') {
+  function startNapAudio(mode = 'meditate', volume = 77, soundscape = 'woven', { quickSwitch = false } = {}) {
     const sc = NAP_SOUNDSCAPES.includes(soundscape) ? soundscape : 'woven';
     napPreset = sc;
     napMode = mode;
     napVolume = volume / 100;
+    const fadeOut = quickSwitch ? MODE_SWITCH_FADE_OUT : FADE_OUT_SEC;
+    const fadeIn = quickSwitch ? MODE_SWITCH_FADE_IN : FADE_IN_SEC;
 
-    // 立即在用户手势上下文中尝试唤醒 AudioContext，防止在 fadeOut 之后唤醒导致浏览器拦截或挂起
     if (ctx && ctx.state === 'suspended') {
       ctx.resume().catch(() => {});
     }
@@ -1054,11 +1191,11 @@ const AudioEngine = (() => {
     napSwitchChain = napSwitchChain
       .catch(() => {})
       .then(async () => {
-        await stopNapLayers(FADE_OUT_SEC);
+        await stopNapLayers(fadeOut);
         if (sc === 'woven') {
-          startWoven(mode, napVolume, FADE_IN_SEC);
+          startWoven(mode, napVolume, fadeIn);
         } else {
-          await napPlayer.start(sc, napVolume, { fadeIn: FADE_IN_SEC });
+          await napPlayer.start(sc, napVolume, { fadeIn });
         }
       })
       .catch((err) => console.warn('[Audio] nap start failed', err));
@@ -1066,10 +1203,18 @@ const AudioEngine = (() => {
     return napSwitchChain;
   }
 
+  /** 模式切换专用：缩短淡出，减少车机交还媒体焦点 */
+  function switchNapMode(mode = 'meditate', volume = 77, soundscape = 'woven') {
+    return startNapAudio(mode, volume, soundscape, { quickSwitch: true });
+  }
+
   function stopNapAudio({ fade = FADE_OUT_SEC } = {}) {
     napSwitchChain = napSwitchChain
       .catch(() => {})
-      .then(() => stopNapLayers(fade));
+      .then(() => stopNapLayers(fade))
+      .then(() => {
+        if (!napPlayer.active && !woven.bus) releaseMediaSession();
+      });
     return napSwitchChain;
   }
 
@@ -1341,21 +1486,49 @@ const AudioEngine = (() => {
     });
   }
 
-  function playSingingBowl() {
+  function playSingingBowl({ duration = 10 } = {}) {
     const c = ensureCtx();
+    if (c.state === 'suspended') c.resume().catch(() => {});
     const t = c.currentTime;
-    [146.83, 293.66, 440].forEach((f, i) => {
+    const boost = MASTER_GAIN;
+    const dur = Math.max(4, Math.min(20, duration));
+
+    const partials = [
+      { f: 146.83, peak: 1.0 },
+      { f: 293.66, peak: 0.58 },
+      { f: 440.0, peak: 0.36 },
+      { f: 587.33, peak: 0.22 },
+    ];
+
+    partials.forEach(({ f, peak }, i) => {
       const osc = c.createOscillator();
       osc.type = 'sine';
       osc.frequency.value = f;
       const g = c.createGain();
+      const attack = 0.05 + i * 0.015;
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.08 / (i + 1), t + 0.08);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 4.5);
+      g.gain.linearRampToValueAtTime((0.15 * boost * peak), t + attack);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
       osc.connect(g);
       g.connect(reverbSend);
       osc.start(t);
-      osc.stop(t + 5);
+      osc.stop(t + dur + 0.15);
+    });
+
+    // 二次轻击，增强 10 秒渐弱的层次感
+    const t2 = t + 0.55;
+    [220, 329.63].forEach((f, i) => {
+      const osc = c.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, t2);
+      g.gain.linearRampToValueAtTime((0.06 * boost) / (i + 1), t2 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, t2 + dur - 0.5);
+      osc.connect(g);
+      g.connect(reverbSend);
+      osc.start(t2);
+      osc.stop(t2 + dur);
     });
   }
 
@@ -1369,6 +1542,7 @@ const AudioEngine = (() => {
     stopNapAudio({ fade });
     stopCampAudio({ fade });
     stopFocusMix();
+    if (fade <= 0.05) releaseMediaSession();
   }
 
   /** 预加载采样；车机轻量模式跳过，避免同时 decode 多轨 */
@@ -1392,6 +1566,7 @@ const AudioEngine = (() => {
     NAP_SOUNDSCAPES,
     preloadAllSamples,
     startNapAudio,
+    switchNapMode,
     stopNapAudio,
     fadeOutNapAudio,
     setNapVolume,

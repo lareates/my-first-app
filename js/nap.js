@@ -152,7 +152,11 @@ function initNap(cleanupFns) {
     });
 
     if (playing) {
-      AudioEngine.startNapAudio(m, parseInt(volInput.value, 10), soundscape);
+      if (typeof AudioEngine.switchNapMode === 'function') {
+        AudioEngine.switchNapMode(m, parseInt(volInput.value, 10), soundscape);
+      } else {
+        AudioEngine.startNapAudio(m, parseInt(volInput.value, 10), soundscape);
+      }
     }
     applyParallax();
   }
@@ -298,28 +302,74 @@ function initNap(cleanupFns) {
 
   bindCarPlay(playBtn, togglePlay);
 
-  napBg = initNapBackground(screen, bgBtn, cleanupFns);
-  initIcons();
+  function closeNapSheets() {
+    napBg?.closeSheet?.();
+    document.querySelectorAll('.timer-sheet.open').forEach((el) => {
+      el.classList.remove('open');
+    });
+    document.body.classList.remove('timer-sheet-open', 'bg-sheet-open');
+  }
 
-  screen.addEventListener('click', (e) => {
+  let lastPanelTap = 0;
+  let panelTouchHandled = false;
+
+  function handleNapPanelTap(e) {
+    if (e.type === 'click' && panelTouchHandled) {
+      panelTouchHandled = false;
+      return;
+    }
+    if (e.type === 'touchend') panelTouchHandled = true;
+
     const modeBtn = e.target.closest('button[data-nap-mode]');
+    const soundBtn = e.target.closest('button[data-soundscape]');
+    if (!modeBtn && !soundBtn) return;
+
+    const now = Date.now();
+    if (now - lastPanelTap < 400) return;
+    lastPanelTap = now;
+
+    e.preventDefault();
+    e.stopPropagation();
+    closeNapSheets();
+
     if (modeBtn) {
-      e.preventDefault();
       applyMode(modeBtn.dataset.napMode);
       return;
     }
-    const soundBtn = e.target.closest('button[data-soundscape]');
-    if (soundBtn) {
-      e.preventDefault();
-      const sc = soundBtn.dataset.soundscape;
-      const label = NAP_SOUND_LABELS[sc] || sc;
-      if (typeof ProGate !== 'undefined' && ProGate.isSoundscapeLocked(sc)) {
-        ProGate.requirePro(label, () => unlockAndPlay(() => applySoundscape(sc, true)));
-        return;
-      }
-      unlockAndPlay(() => applySoundscape(sc, true));
+
+    const sc = soundBtn.dataset.soundscape;
+    const label = NAP_SOUND_LABELS[sc] || sc;
+    if (typeof ProGate !== 'undefined' && ProGate.isSoundscapeLocked(sc)) {
+      ProGate.requirePro(label, () => unlockAndPlay(() => applySoundscape(sc, true)));
+      return;
     }
-  }, { signal: ac.signal });
+    unlockAndPlay(() => applySoundscape(sc, true));
+  }
+
+  screen.addEventListener('click', handleNapPanelTap, { signal: ac.signal });
+  screen.addEventListener('touchend', handleNapPanelTap, { signal: ac.signal, passive: false });
+
+  napBg = initNapBackground(screen, bgBtn, cleanupFns);
+  initIcons();
+
+  // 壁纸面板打开时 z-index 更高，需在捕获阶段拦截声景/模式点击
+  document.addEventListener('click', (e) => {
+    if (!napBg?.isSheetOpen?.()) return;
+    if (!e.target.closest('#scene-nap')) return;
+    const modeBtn = e.target.closest('button[data-nap-mode]');
+    const soundBtn = e.target.closest('button[data-soundscape]');
+    if (!modeBtn && !soundBtn) return;
+    handleNapPanelTap(e);
+  }, { capture: true, signal: ac.signal });
+
+  document.addEventListener('touchend', (e) => {
+    if (!napBg?.isSheetOpen?.()) return;
+    if (!e.target.closest('#scene-nap')) return;
+    const modeBtn = e.target.closest('button[data-nap-mode]');
+    const soundBtn = e.target.closest('button[data-soundscape]');
+    if (!modeBtn && !soundBtn) return;
+    handleNapPanelTap(e);
+  }, { capture: true, signal: ac.signal, passive: false });
 
   volInput.addEventListener('input', () => {
     volFill.style.width = `${volInput.value}%`;
