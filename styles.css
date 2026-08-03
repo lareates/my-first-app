@@ -20,10 +20,11 @@ html, body {
 
 /* Home */
 #home {
+  --home-lang-inset-right: clamp(1.25rem, 5vw, 3.5rem);
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  gap: 3rem;
+  padding: 1.75rem 2rem;
+  gap: 2rem;
   font-family: system-ui, -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
   color: #e2e2e2;
 }
@@ -35,30 +36,57 @@ html, body {
     radial-gradient(ellipse 60% 50% at 80% 20%, rgba(54,38,206,0.12) 0%, transparent 60%),
     #0c0f0f;
 }
-.home-header { text-align: center; z-index: 1; }
-.eyebrow {
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: rgba(207,196,197,0.6);
-  margin-bottom: 1rem;
+.home-header {
+  text-align: center;
+  z-index: 1;
+  max-width: 32rem;
 }
-.home-header h1 {
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  font-weight: 200;
-  line-height: 1.15;
+.home-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.home-brand-name {
+  font-size: clamp(1.45rem, 3.2vw, 2rem);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+}
+.home-tagline {
+  font-size: clamp(0.92rem, 2vw, 1.05rem);
+  font-weight: 300;
+  line-height: 1.45;
+  color: rgba(226,226,226,0.9);
+}
+.home-scenes {
+  width: 100%;
+  max-width: 900px;
+  z-index: 1;
+}
+.home-scenes-title {
+  font-size: clamp(0.9rem, 1.9vw, 1rem);
+  font-weight: 300;
+  line-height: 1.35;
+  color: rgba(207,196,197,0.62);
+  text-align: center;
+  margin-bottom: 0.85rem;
   letter-spacing: 0.02em;
 }
 .lang-switch {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top, 0px));
+  right: max(var(--home-lang-inset-right), env(safe-area-inset-right, 0px));
+  z-index: 20;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  margin-top: 1.25rem;
   padding: 0.25rem;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.04);
+  background: rgba(12, 15, 15, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .lang-btn {
   appearance: none;
@@ -83,9 +111,7 @@ html, body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
-  max-width: 900px;
   width: 100%;
-  z-index: 1;
 }
 .scene-card {
   background: rgba(255,255,255,0.03);
@@ -110,6 +136,46 @@ html, body {
 .scene-label { font-size: 1.1rem; font-weight: 400; }
 .scene-desc { font-size: 0.8rem; color: rgba(207,196,197,0.55); }
 
+.home-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: max(1.15rem, env(safe-area-inset-bottom, 0px));
+  z-index: 10;
+  text-align: center;
+  padding: 0 1.5rem;
+  pointer-events: none;
+}
+.home-footer-links,
+.home-footer-tagline {
+  pointer-events: auto;
+}
+.home-footer-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.1rem;
+  margin-bottom: 0.4rem;
+}
+.home-footer-links a {
+  font-size: 0.62rem;
+  color: rgba(207, 196, 197, 0.32);
+  text-decoration: none;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  transition: color 0.2s;
+}
+.home-footer-links a:hover {
+  color: rgba(207, 196, 197, 0.52);
+}
+.home-footer-tagline {
+  font-size: 0.58rem;
+  font-weight: 300;
+  color: rgba(207, 196, 197, 0.26);
+  letter-spacing: 0.03em;
+}
+
 .visualizer span {
   width: 4px; height: 8px;
   background: #d2bbff;
@@ -121,6 +187,27 @@ html, body {
   opacity: 0.8;
 }
 @keyframes viz { from { height: 8px; } to { height: 28px; } }
+
+@media (max-height: 720px) {
+  #home {
+    gap: 1.35rem;
+    padding: 1.25rem 1.75rem;
+  }
+  .home-brand { margin-bottom: 0.35rem; }
+  .home-brand-name { font-size: 1.3rem; }
+  .home-tagline { font-size: 0.88rem; }
+  .home-scenes-title { font-size: 0.85rem; margin-bottom: 0.65rem; }
+  .lang-switch {
+    top: max(0.75rem, env(safe-area-inset-top, 0px));
+    --home-lang-inset-right: clamp(1rem, 4vw, 2.75rem);
+  }
+  .home-footer {
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+  }
+  .scene-card { padding: 1.35rem; }
+  .home-footer-links a { font-size: 0.58rem; }
+  .home-footer-tagline { font-size: 0.54rem; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .scene-card,

@@ -18,25 +18,27 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
   let motionOff = null;
   let particleCtx = null;
   let particles = [];
+  let sheetOpenedAt = 0;
   const ac = new AbortController();
 
   const sheet = document.createElement('div');
-  sheet.className = 'timer-sheet bg-sheet';
+  sheet.className = 'bg-picker';
+  sheet.hidden = true;
   sheet.innerHTML = `
-    <div class="timer-sheet-backdrop" data-close></div>
-    <div class="timer-sheet-panel" role="dialog" aria-modal="true" aria-label="">
-      <div class="timer-sheet-handle"></div>
-      <p class="timer-sheet-title"></p>
-      <p class="timer-sheet-sub"></p>
+    <div class="bg-picker-backdrop" data-close></div>
+    <div class="bg-picker-panel" role="dialog" aria-modal="true" aria-label="">
+      <div class="bg-picker-handle"></div>
+      <p class="bg-picker-title"></p>
+      <p class="bg-picker-sub"></p>
       <div class="bg-sheet-grid"></div>
     </div>
   `;
   document.body.appendChild(sheet);
 
   const grid = sheet.querySelector('.bg-sheet-grid');
-  const titleEl = sheet.querySelector('.timer-sheet-title');
-  const subEl = sheet.querySelector('.timer-sheet-sub');
-  const panelEl = sheet.querySelector('.timer-sheet-panel');
+  const titleEl = sheet.querySelector('.bg-picker-title');
+  const subEl = sheet.querySelector('.bg-picker-sub');
+  const panelEl = sheet.querySelector('.bg-picker-panel');
 
   NAP_SCENE_BACKGROUNDS.forEach(bg => {
     const btn = document.createElement('button');
@@ -147,14 +149,14 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
   }
 
   function syncAmbient() {
-    const screen = document.getElementById('scene-nap');
-    const napMode = screen?.dataset.auraMode || 'meditate';
+    const napScreen = document.getElementById('scene-nap');
+    const napMode = napScreen?.dataset.auraMode || 'meditate';
     if (isCustom()) {
       NapAmbient.stop();
       Ambient.stop();
     } else {
       Ambient.stop();
-      NapAmbient.start(screen, napMode);
+      NapAmbient.start(napScreen, napMode);
     }
   }
 
@@ -170,34 +172,26 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
 
   function closeSheet() {
     sheet.classList.remove('open');
+    sheet.hidden = true;
     document.body.classList.remove('timer-sheet-open', 'bg-sheet-open');
   }
 
   function openSheet() {
-    document.querySelectorAll('.timer-sheet.open').forEach((el) => {
-      if (el !== sheet) el.classList.remove('open');
-    });
+    if (isRecentTimerTap()) return;
+    closeAllSheets();
     applySheetCopy();
     syncActiveCards();
-    sheet.classList.add('open');
-    document.body.classList.add('timer-sheet-open', 'bg-sheet-open');
+    sheetOpenedAt = Date.now();
+    sheet.hidden = false;
+    requestAnimationFrame(() => {
+      sheet.classList.add('open');
+      document.body.classList.add('timer-sheet-open', 'bg-sheet-open');
+    });
   }
 
-  triggerEl.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    openSheet();
-  }, { signal: ac.signal });
-
-  sheet.addEventListener('click', (e) => {
-    if (e.target.matches('[data-close]')) {
-      closeSheet();
-      return;
-    }
-    const card = e.target.closest('.bg-sheet-card');
-    if (!card) return;
-    e.preventDefault();
-    e.stopPropagation();
+  function pickBackground(card) {
+    if (!card || isRecentTimerTap()) return;
+    if (Date.now() - sheetOpenedAt < SHEET_TAP_GUARD_MS) return;
     const id = card.dataset.sceneBg;
     const copy = typeof I18n !== 'undefined' ? I18n.napBgCopy(id) : { label: id };
     if (typeof ProGate !== 'undefined' && ProGate.isBackgroundLocked(id)) {
@@ -207,6 +201,36 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     }
     apply(id);
     closeSheet();
+  }
+
+  bindCarTap(triggerEl, () => openSheet(), { signal: ac.signal });
+
+  sheet.addEventListener('touchend', (e) => {
+    if (!sheet.classList.contains('open')) return;
+    if (e.target.matches('[data-close], .bg-picker-backdrop')) {
+      e.preventDefault();
+      closeSheet();
+      return;
+    }
+    const card = e.target.closest('.bg-sheet-card');
+    if (!card) return;
+    e.preventDefault();
+    e.stopPropagation();
+    pickBackground(card);
+  }, { signal: ac.signal, passive: false });
+
+  sheet.addEventListener('click', (e) => {
+    if (!sheet.classList.contains('open')) return;
+    if (e.target.matches('[data-close], .bg-picker-backdrop')) {
+      closeSheet();
+      return;
+    }
+    if (Date.now() - sheetOpenedAt < SHEET_TAP_GUARD_MS) return;
+    const card = e.target.closest('.bg-sheet-card');
+    if (!card) return;
+    e.preventDefault();
+    e.stopPropagation();
+    pickBackground(card);
   }, { signal: ac.signal });
 
   document.addEventListener('keydown', (e) => {

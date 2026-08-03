@@ -1,5 +1,49 @@
 const pad = (n) => String(n).padStart(2, '0');
 
+/** 弹窗打开后忽略同一次触摸落在面板上的误触（车机常见） */
+const SHEET_TAP_GUARD_MS = 800;
+
+let lastTimerTapAt = 0;
+
+function markTimerTap() {
+  lastTimerTapAt = Date.now();
+}
+
+function isRecentTimerTap(withinMs = 900) {
+  return Date.now() - lastTimerTapAt < withinMs;
+}
+
+function closeAllSheets() {
+  document.querySelectorAll('.timer-sheet.open, .bg-picker.open').forEach((el) => {
+    el.classList.remove('open');
+    el.hidden = true;
+  });
+  document.body.classList.remove('timer-sheet-open', 'bg-sheet-open');
+}
+
+/** 车机触控：touchend + click 双绑定，避免 QtWebEngine 点击丢失或错位 */
+function bindCarTap(btn, handler, { signal } = {}) {
+  if (!btn || typeof handler !== 'function') return;
+  let last = 0;
+  let touchHandled = false;
+  const opts = signal ? { signal } : {};
+  const run = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const now = Date.now();
+    if (now - last < 350) return;
+    if (e.type === 'click' && touchHandled) {
+      touchHandled = false;
+      return;
+    }
+    if (e.type === 'touchend') touchHandled = true;
+    last = now;
+    handler(e);
+  };
+  btn.addEventListener('touchend', run, { passive: false, ...opts });
+  btn.addEventListener('click', run, opts);
+}
+
 function formatDate(d) {
   const tag = (typeof I18n !== 'undefined') ? I18n.localeTag() : 'en-US';
   return d.toLocaleDateString(tag, { weekday: 'long', month: 'long', day: 'numeric' });

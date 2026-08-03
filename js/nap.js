@@ -291,6 +291,7 @@ function initNap(cleanupFns) {
   const timerPicker = createTimerPicker({
     triggerEl: timerBtn,
     defaultMin: freeDefaultMin,
+    bindTrigger: false,
     onChange: (min) => {
       if (waking) resetWakeState();
       setDuration(min);
@@ -300,15 +301,23 @@ function initNap(cleanupFns) {
   setDuration(freeDefaultMin);
   if (typeof ProGate !== 'undefined') ProGate.syncSoundscapeLocks();
 
-  bindCarPlay(playBtn, togglePlay);
-
   function closeNapSheets() {
     napBg?.closeSheet?.();
-    document.querySelectorAll('.timer-sheet.open').forEach((el) => {
-      el.classList.remove('open');
-    });
-    document.body.classList.remove('timer-sheet-open', 'bg-sheet-open');
+    closeAllSheets();
   }
+
+  bindCarTap(timerBtn, () => {
+    markTimerTap();
+    closeNapSheets();
+    timerPicker.open();
+  }, { signal: ac.signal });
+
+  timerBtn.addEventListener('touchstart', (e) => {
+    markTimerTap();
+    e.stopPropagation();
+  }, { capture: true, signal: ac.signal, passive: true });
+
+  bindCarPlay(playBtn, togglePlay);
 
   let lastPanelTap = 0;
   let panelTouchHandled = false;

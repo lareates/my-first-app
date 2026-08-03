@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0c0f0f">
-  <title>Aetheris · Cabin Space</title>
+  <title>AeroCabin</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="css/aura.css?v=8">
+  <link rel="stylesheet" href="css/aura.css?v=10">
   <link rel="stylesheet" href="css/nap-scenes.css?v=3">
   <link rel="stylesheet" href="css/porsche-gauges.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,32 +18,46 @@
   <!-- 首页 -->
   <section id="home" class="screen active">
     <div class="home-bg"></div>
+    <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="langGroup">
+      <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+      <button type="button" class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
+      <button type="button" class="lang-btn" data-lang="fr" aria-pressed="false">FR</button>
+    </div>
     <header class="home-header">
-      <p class="eyebrow" data-i18n="homeEyebrow">Aetheris · Cabin Space</p>
-      <h1 data-i18n-html="homeTitle">Choose your<br>moment</h1>
-      <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="langGroup">
-        <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
-        <button type="button" class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
-        <button type="button" class="lang-btn" data-lang="fr" aria-pressed="false">FR</button>
+      <div class="home-brand">
+        <h1 class="home-brand-name" data-i18n="homeBrand">AeroCabin</h1>
       </div>
+      <p class="home-tagline" data-i18n="homeTagline">A relaxation space made for your Tesla.</p>
     </header>
-    <nav class="scene-grid">
+    <div class="home-scenes">
+      <h2 class="home-scenes-title" data-i18n="homeScenesTitle">What do you need right now?</h2>
+      <nav class="scene-grid">
       <button class="scene-card" data-scene="nap">
         <span class="scene-icon ico ico-scene" data-icon="moon"></span>
-        <span class="scene-label" data-i18n="sceneNap">In-car Nap</span>
-        <span class="scene-desc" data-i18n="sceneNapDesc">Sleep · Meditate · Breathe</span>
+        <span class="scene-label" data-i18n="sceneNap">I want to rest</span>
+        <span class="scene-desc" data-i18n="sceneNapDesc">Nap · Relax · Breathe</span>
       </button>
       <button class="scene-card" data-scene="camp">
         <span class="scene-icon ico ico-scene" data-icon="tent"></span>
-        <span class="scene-label" data-i18n="sceneCamp">Outdoor Camp</span>
-        <span class="scene-desc" data-i18n="sceneCampDesc">Stars · Terrain · Sky</span>
+        <span class="scene-label" data-i18n="sceneCamp">I'm camping</span>
+        <span class="scene-desc" data-i18n="sceneCampDesc">Stars · Landscapes · Sky</span>
       </button>
       <button class="scene-card" data-scene="focus">
         <span class="scene-icon ico ico-scene" data-icon="bolt"></span>
-        <span class="scene-label" data-i18n="sceneFocus">Charge & Wait</span>
-        <span class="scene-desc" data-i18n="sceneFocusDesc">Relief Timer · ASMR Mixer</span>
+        <span class="scene-label" data-i18n="sceneFocus">I'm charging</span>
+        <span class="scene-desc" data-i18n="sceneFocusDesc">Timer · Soundscapes · ASMR</span>
       </button>
     </nav>
+    </div>
+
+    <footer class="home-footer">
+      <nav class="home-footer-links" aria-label="Legal">
+        <a href="/privacy/" data-i18n="footerPrivacy">Privacy</a>
+        <a href="/terms/" data-i18n="footerTerms">Terms</a>
+        <a href="mailto:hello@aerocabin.app" data-i18n="footerContact">Contact</a>
+      </nav>
+      <p class="home-footer-tagline" data-i18n="homeFooterTagline">Made for Tesla owners.</p>
+    </footer>
 
   </section>
 
@@ -638,19 +652,19 @@
   </div>
 
   <script src="js/utils.js"></script>
-  <script src="js/i18n.js?v=2"></script>
+  <script src="js/i18n.js?v=7"></script>
   <script src="js/motion.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/ambient.js"></script>
   <script src="js/pro.js?v=4"></script>
-  <script src="js/timer-picker.js"></script>
+  <script src="js/timer-picker.js?v=2"></script>
   <script src="js/tesla.js?v=4"></script>
   <script src="js/art.js"></script>
   <script src="js/audio.js?v=car4"></script>
   <script src="js/bookmark-hint.js?v=2"></script>
   <script src="js/nap-ambient.js"></script>
-  <script src="js/nap-bg.js"></script>
-  <script src="js/nap.js"></script>
+  <script src="js/nap-bg.js?v=2"></script>
+  <script src="js/nap.js?v=2"></script>
   <script src="js/camp.js"></script>
   <script src="js/focus-theme.js"></script>
   <script src="js/porsche-cluster.js"></script>

@@ -10,10 +10,12 @@ const DURATION_OPTIONS = [
   { min: 60 },
 ];
 
-function createTimerPicker({ triggerEl, defaultMin = 10, onChange, signal }) {
+function createTimerPicker({ triggerEl, defaultMin = 10, onChange, signal, bindTrigger = true }) {
   let selectedMin = defaultMin;
+  let sheetOpenedAt = 0;
   const sheet = document.createElement('div');
-  sheet.className = 'timer-sheet';
+  sheet.className = 'timer-sheet timer-sheet--duration';
+  sheet.hidden = true;
   sheet.innerHTML = `
     <div class="timer-sheet-backdrop" data-close></div>
     <div class="timer-sheet-panel" role="dialog" aria-modal="true" aria-label="">
@@ -56,15 +58,21 @@ function createTimerPicker({ triggerEl, defaultMin = 10, onChange, signal }) {
   }
 
   function open() {
+    closeAllSheets();
     applySheetCopy();
     syncActive();
     if (typeof ProGate !== 'undefined') ProGate.syncDurationLocks(sheet);
-    sheet.classList.add('open');
-    document.body.classList.add('timer-sheet-open');
+    sheetOpenedAt = Date.now();
+    sheet.hidden = false;
+    requestAnimationFrame(() => {
+      sheet.classList.add('open');
+      document.body.classList.add('timer-sheet-open');
+    });
   }
 
   function close() {
     sheet.classList.remove('open');
+    sheet.hidden = true;
     document.body.classList.remove('timer-sheet-open');
   }
 
@@ -76,17 +84,39 @@ function createTimerPicker({ triggerEl, defaultMin = 10, onChange, signal }) {
   }
 
   const opts = signal ? { signal } : {};
-  triggerEl.addEventListener('click', (e) => {
+  if (bindTrigger && triggerEl) {
+    bindCarTap(triggerEl, () => {
+      markTimerTap();
+      open();
+    }, opts);
+  }
+
+  sheet.addEventListener('touchend', (e) => {
+    if (!sheet.classList.contains('open')) return;
+    if (e.target.matches('[data-close]')) {
+      e.preventDefault();
+      close();
+      return;
+    }
+    if (Date.now() - sheetOpenedAt < SHEET_TAP_GUARD_MS) return;
+    const opt = e.target.closest('.timer-sheet-option');
+    if (!opt) return;
     e.preventDefault();
     e.stopPropagation();
-    open();
-  }, opts);
+    const min = parseInt(opt.dataset.min, 10);
+    if (typeof ProGate !== 'undefined' && ProGate.isDurationLocked(min)) {
+      ProGate.requirePro(I18n.durationMin(min), () => select(min));
+      return;
+    }
+    select(min);
+  }, { passive: false, ...opts });
 
   sheet.addEventListener('click', (e) => {
     if (e.target.matches('[data-close]')) {
       close();
       return;
     }
+    if (Date.now() - sheetOpenedAt < SHEET_TAP_GUARD_MS) return;
     const opt = e.target.closest('.timer-sheet-option');
     if (!opt) return;
     const min = parseInt(opt.dataset.min, 10);
@@ -108,6 +138,8 @@ function createTimerPicker({ triggerEl, defaultMin = 10, onChange, signal }) {
   applySheetCopy();
 
   return {
+    open,
+    close,
     getMinutes: () => selectedMin,
     setMinutes(min) {
       selectedMin = min;
