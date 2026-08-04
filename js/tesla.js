@@ -1,8 +1,29 @@
 /** 特斯拉 / 车机浏览器音频解锁 + 浏览器全屏 */
-const APP_CANONICAL = 'https://lareates.github.io/my-first-app/';
+const APP_CANONICAL = 'https://aerocabin.app/';
 const THEATER_FLAG = 'aetheris-theater';
 /** 国行全屏跳板：须为「无路径」根站，才能通过 1905 校验（与 s3xy.top 同理） */
 const THEATER_BOUNCE_ORIGIN = 'https://lareates.github.io';
+const THEATER_BOUNCE_HOSTS = new Set([
+  'https://aerocabin.app',
+  'https://lareates.github.io',
+]);
+
+/** 1905 / v.qq 回流：带 ?www.1905.com&to= 时立即跳回应用 */
+(function handleTheaterBounce() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const to = params.get('to');
+    if (!params.has('www.1905.com') || !to) return;
+    let target = to;
+    if (to.charAt(0) === '/') target = `${location.origin}${to}`;
+    else if (!/^https?:\/\//i.test(to)) target = `${location.origin}/${to.replace(/^\//, '')}`;
+    const url = new URL(target);
+    if (!url.searchParams.has('theater')) url.searchParams.set('theater', '1');
+    location.replace(url.toString());
+  } catch (e) {
+    console.warn('[Theater] bounce redirect failed', e);
+  }
+})();
 
 async function unlockAndPlay(playFn) {
   try {
@@ -51,27 +72,46 @@ function preserveProBeforeRedirect() {
   if (typeof ProGate !== 'undefined') ProGate.preserveForNavigation?.();
 }
 
+function isBrowserFullscreenActive() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
 async function tryBrowserFullscreen() {
   try {
-    const el = document.documentElement;
-    const active = document.fullscreenElement || document.webkitFullscreenElement;
-    if (active) {
+    if (isBrowserFullscreenActive()) {
       if (document.exitFullscreen) await document.exitFullscreen();
       else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
       return true;
     }
-    if (el.requestFullscreen) {
-      await el.requestFullscreen();
-      return true;
-    }
-    if (el.webkitRequestFullscreen) {
-      el.webkitRequestFullscreen();
-      return true;
+    const candidates = [document.documentElement, document.body].filter(Boolean);
+    for (const el of candidates) {
+      try {
+        if (el.requestFullscreen) {
+          await el.requestFullscreen({ navigationUI: 'hide' });
+          if (isBrowserFullscreenActive()) return true;
+        }
+      } catch { /* try next */ }
+      try {
+        if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+          if (isBrowserFullscreenActive()) return true;
+        }
+      } catch { /* try next */ }
     }
   } catch (e) {
     console.warn('[Theater] Fullscreen API unavailable', e);
   }
   return false;
+}
+
+async function resumeAudioIfNeeded() {
+  try {
+    if (typeof AudioEngine === 'undefined') return;
+    const ctx = await AudioEngine.resume();
+    if (ctx && ctx.state === 'suspended') await ctx.resume();
+  } catch (e) {
+    console.warn('[Theater] Audio resume skipped', e);
+  }
 }
 
 /**
@@ -101,18 +141,21 @@ function bindTheaterButton(btn) {
     const label = theaterLabel();
 
     const enter = async () => {
-      // 优先使用浏览器原生全屏，不跳转外链，避免 Pro 状态丢失
+      await resumeAudioIfNeeded();
+      // 车机 QtWebEngine 通常不支持 Fullscreen API，失败则走 Theater 外链回流
       if (await tryBrowserFullscreen()) return;
 
       preserveProBeforeRedirect();
       if (type === 'cn') enterTeslaTheaterModeChina();
-      else if (type === 'yt') enterTeslaTheaterModeViaYouTube();
+      else enterTeslaTheaterModeViaYouTube();
     };
 
-    unlockAndPlay(() => {
+    const launch = () => {
       if (typeof ProGate !== 'undefined' && !ProGate.requirePro(label, enter)) return;
       enter();
-    });
+    };
+
+    resumeAudioIfNeeded().finally(launch);
   };
 
   btn.addEventListener('touchend', run, { passive: false });
@@ -143,11 +186,15 @@ function getTheaterReturnUrl() {
 /**
  * 构造能通过 1905 校验的回流地址，并带上当前应用路径与 Pro 恢复参数
  */
+function getTheaterBounceOrigin() {
+  if (THEATER_BOUNCE_HOSTS.has(location.origin)) return location.origin;
+  return THEATER_BOUNCE_ORIGIN;
+}
+
 function getChinaTheaterBounceUrl() {
-  let path = location.pathname.replace(/\/index\.html$/i, '');
-  if (!path.endsWith('/')) path += '/';
-  const to = encodeURIComponent(`${path}?${buildTheaterReturnQuery()}`);
-  return `${THEATER_BOUNCE_ORIGIN}?www.1905.com&to=${to}`;
+  const returnUrl = getTheaterReturnUrl();
+  const to = encodeURIComponent(returnUrl);
+  return `${getTheaterBounceOrigin()}?www.1905.com&to=${to}`;
 }
 
 function isTheaterMode() {
@@ -178,11 +225,6 @@ function markTheaterMode() {
 }
 
 function enterTeslaTheaterModeChina() {
-  if (location.origin !== THEATER_BOUNCE_ORIGIN) {
-    console.warn('[Theater] China redirect only returns to', THEATER_BOUNCE_ORIGIN, '- use deployed URL or native fullscreen');
-    tryBrowserFullscreen();
-    return;
-  }
   const bounce = getChinaTheaterBounceUrl();
   const redirect1905 = `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(bounce)}`;
   const finalUrl = `https://v.qq.com/search_redirect.html?url=${encodeURIComponent(redirect1905)}`;
