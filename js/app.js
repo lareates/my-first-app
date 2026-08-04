@@ -34,22 +34,49 @@ function showScene(name) {
 
   if (name === 'nap') {
     Ambient.stop();
+    AuraHeader.onSceneEnter(screens.nap);
     initNap(cleanupFns);
     return;
   }
 
   if (name === 'camp') {
     Ambient.stop();
+    AuraHeader.onSceneEnter(screens.camp);
     initCamp(cleanupFns);
     return;
   }
-  if (name === 'focus') initFocus(cleanupFns);
+  if (name === 'focus') {
+    AuraHeader.onSceneEnter(screens.focus);
+    initFocus(cleanupFns);
+    return;
+  }
 }
 
 document.querySelectorAll('[data-scene]').forEach(btn => {
-  const go = () => showScene(btn.dataset.scene);
+  const scene = btn.dataset.scene;
+  let last = 0;
+  let touchHandled = false;
+  const go = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const now = Date.now();
+    if (now - last < 350) return;
+    if (e.type === 'click' && touchHandled) {
+      touchHandled = false;
+      return;
+    }
+    last = now;
+    if (e.type === 'touchend') touchHandled = true;
+
+    const enter = () => showScene(scene);
+    if (typeof ProGate !== 'undefined' && ProGate.isSceneLocked(scene)) {
+      const label = btn.querySelector('.scene-label')?.textContent?.trim() || scene;
+      if (!ProGate.requirePro(label, enter)) return;
+    }
+    enter();
+  };
+  btn.addEventListener('touchend', go, { passive: false });
   btn.addEventListener('click', go);
-  btn.addEventListener('touchend', go);
 });
 document.querySelectorAll('[data-back]').forEach(btn => {
   const back = () => showScene('home');

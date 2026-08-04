@@ -1,4 +1,4 @@
-/* Aetheris Design System — 车机兼容：无 Google Fonts 外链 */
+/* AeroCabin Design System — 车机兼容：无 Google Fonts 外链 */
 :root {
   --aura-bg: #0c0f0f;
   --aura-surface: #121414;
@@ -12,6 +12,23 @@
   --aura-margin: clamp(24px, 5vw, 64px);
   --aura-min-font: 12px;
   --aura-header-inset-right: clamp(3.5rem, 8vw, 5.5rem);
+  --aura-header-height: calc(env(safe-area-inset-top, 0px) + 4.75rem);
+  --aura-header-scrim: var(--aura-bg);
+  --pro-gold-border: rgba(245, 165, 36, 0.32);
+  --pro-gold-gradient: linear-gradient(
+    145deg,
+    rgba(245, 165, 36, 0.05) 0%,
+    rgba(255, 200, 100, 0.02) 40%,
+    rgba(245, 165, 36, 0.04) 70%,
+    rgba(255, 180, 60, 0.015) 100%
+  );
+  --pro-gold-gradient-hover: linear-gradient(
+    145deg,
+    rgba(245, 165, 36, 0.07) 0%,
+    rgba(255, 200, 100, 0.03) 40%,
+    rgba(245, 165, 36, 0.055) 70%,
+    rgba(255, 180, 60, 0.02) 100%
+  );
   --font-manrope: system-ui, -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
   --font-space: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
@@ -63,9 +80,45 @@
   justify-content: space-between;
   align-items: center;
   padding: 2rem var(--aura-margin);
+  padding-top: calc(2rem + env(safe-area-inset-top, 0px));
   padding-right: calc(var(--aura-margin) + var(--aura-header-inset-right));
   background: transparent;
   pointer-events: none;
+}
+.aura-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  bottom: -1.75rem;
+  background: linear-gradient(
+    180deg,
+    var(--aura-header-scrim) 0%,
+    rgba(12, 15, 15, 0.92) 58%,
+    rgba(12, 15, 15, 0) 100%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+/* 休息 / 露营 / 充电：按钮常驻，仅上滑时显示顶栏底色（纯黑渐变） */
+#scene-nap .aura-header::before,
+#scene-camp .aura-header::before,
+#scene-focus .aura-header::before {
+  bottom: -4.5rem;
+  opacity: 0;
+  transition: opacity 0.38s ease;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.98) 22%,
+    rgba(0, 0, 0, 0.88) 48%,
+    rgba(0, 0, 0, 0.45) 72%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+#scene-nap.aura-header-scrim-visible .aura-header::before,
+#scene-camp.aura-header-scrim-visible .aura-header::before,
+#scene-focus.aura-header-scrim-visible .aura-header::before {
+  opacity: 1;
 }
 .aura-header > * { pointer-events: auto; }
 
@@ -113,12 +166,25 @@
   white-space: nowrap;
   pointer-events: auto;
   min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.aura-theater-actions .aura-theater-btn:not([hidden]) {
+  min-width: 7.5rem;
 }
 .aura-theater-btn[hidden] {
   display: none !important;
 }
 .aura-theater-btn:hover {
   border-color: rgba(210, 187, 255, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.aura-theater-btn.pro-locked:hover,
+.aura-pro-btn:hover {
+  border-color: rgba(245, 165, 36, 0.48) !important;
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
 }
@@ -1287,10 +1353,39 @@ html.heritage-ui-off .porsche-cluster {
   display: none !important;
 }
 
-/* Pro 付费角标 / 调音台遮罩 */
-.pro-locked {
+/* Pro 付费角标 / 调音台遮罩 · 内部金色渐变（约 15% 透明度） */
+.pro-locked,
+.aura-pro-btn {
   position: relative;
-  border-color: rgba(245, 165, 36, 0.35) !important;
+  overflow: hidden;
+  isolation: isolate;
+  border-color: var(--pro-gold-border) !important;
+  box-shadow: none;
+  transition: border-color 0.25s, color 0.25s, transform 0.15s;
+}
+.pro-locked::before,
+.aura-pro-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--pro-gold-gradient);
+  transition: opacity 0.3s ease;
+}
+.pro-locked:hover::before,
+.aura-pro-btn:hover::before {
+  background: var(--pro-gold-gradient-hover);
+}
+.pro-locked > *,
+.aura-pro-btn > * {
+  position: relative;
+  z-index: 1;
+}
+.pro-locked:hover,
+.aura-pro-btn:hover {
+  box-shadow: none;
 }
 .pro-key {
   display: inline-flex;
@@ -1304,7 +1399,7 @@ html.heritage-ui-off .porsche-cluster {
 }
 .pro-key-icon {
   display: block;
-  filter: drop-shadow(0 0 4px rgba(245, 165, 36, 0.45));
+  filter: drop-shadow(0 0 2px rgba(245, 165, 36, 0.25));
 }
 .aura-theater-btn.pro-locked,
 .nap-sound-chip.pro-locked,
@@ -1328,6 +1423,17 @@ html.heritage-ui-off .porsche-cluster {
   right: 0.55rem;
   margin-right: 0;
 }
+.scene-card.pro-locked {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.scene-card.pro-locked .pro-key {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  margin-right: 0;
+}
 .timer-sheet-option.pro-locked .pro-key {
   margin-right: 0.25rem;
 }
@@ -1337,6 +1443,19 @@ html.heritage-ui-off .porsche-cluster {
 }
 .oasis-console.pro-locked-panel {
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-color: rgba(245, 165, 36, 0.28);
+  box-shadow: none;
+}
+.oasis-console.pro-locked-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--pro-gold-gradient);
 }
 .pro-panel-veil {
   position: absolute;
@@ -1347,12 +1466,11 @@ html.heritage-ui-off .porsche-cluster {
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  border: 0;
+  border: 1px solid rgba(245, 165, 36, 0.22);
   border-radius: inherit;
   cursor: pointer;
-  background: rgba(6, 8, 12, 0.62);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  overflow: hidden;
+  isolation: isolate;
   color: rgba(226, 226, 226, 0.92);
   font-family: var(--font-space);
   font-size: 12px;
@@ -1360,6 +1478,32 @@ html.heritage-ui-off .porsche-cluster {
   text-transform: uppercase;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: none;
+  background: rgba(6, 8, 12, 0.62);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition: border-color 0.25s;
+}
+.pro-panel-veil::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--pro-gold-gradient);
+  transition: opacity 0.3s ease;
+}
+.pro-panel-veil:hover::before {
+  background: var(--pro-gold-gradient-hover);
+}
+.pro-panel-veil > * {
+  position: relative;
+  z-index: 1;
+}
+.pro-panel-veil:hover {
+  border-color: rgba(245, 165, 36, 0.36);
+  box-shadow: none;
 }
 .pro-panel-veil .pro-key {
   margin-right: 0;
@@ -1496,7 +1640,7 @@ html.heritage-ui-off .porsche-cluster {
   position: relative;
   z-index: 1;
   width: min(26rem, 100%);
-  max-height: min(90vh, 36rem);
+  max-height: min(92vh, 40rem);
   overflow-y: auto;
   padding: 1.6rem 1.45rem 1.35rem;
   border-radius: 1.25rem;
@@ -1512,17 +1656,19 @@ html.heritage-ui-off .porsche-cluster {
   transform: translateY(0) scale(1);
 }
 .focus-paywall-eyebrow {
-  font-family: var(--font-space);
-  font-size: 9px;
-  letter-spacing: 0.28em;
-  color: rgba(210,187,255,0.65);
-  margin-bottom: 0.55rem;
+  font-family: var(--font-manrope);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(245, 196, 120, 0.92);
+  margin-bottom: 0.65rem;
 }
 .focus-paywall-title {
   font-family: var(--font-manrope);
   font-weight: 300;
   font-size: 1.35rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
   color: var(--aura-on-surface);
   margin-bottom: 0.7rem;
 }
@@ -1531,38 +1677,81 @@ html.heritage-ui-off .porsche-cluster {
   line-height: 1.55;
   color: rgba(207,196,197,0.85);
   margin-bottom: 1rem;
+  white-space: pre-line;
 }
 .focus-paywall-perks {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 1.25rem;
+  gap: 0.45rem;
+  margin-bottom: 1.15rem;
   padding: 0;
 }
 .focus-paywall-perks li {
-  font-family: var(--font-space);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  color: rgba(210,187,255,0.7);
-  padding-left: 0.9rem;
+  font-family: var(--font-manrope);
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  color: rgba(226, 220, 221, 0.88);
+  padding-left: 1.35rem;
   position: relative;
 }
 .focus-paywall-perks li::before {
-  content: '';
+  content: '✓';
   position: absolute;
   left: 0;
-  top: 0.45em;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgba(210,187,255,0.7);
+  top: 0;
+  color: rgba(245, 196, 120, 0.95);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.focus-paywall-pricing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  margin-bottom: 1.15rem;
+  padding: 0.85rem 0.75rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(245, 165, 36, 0.22);
+  background: rgba(245, 165, 36, 0.06);
+}
+.focus-paywall-price-label {
+  font-family: var(--font-space);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(207,196,197,0.62);
+}
+.focus-paywall-price {
+  font-family: var(--font-manrope);
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(255, 224, 170, 0.98);
+}
+.focus-paywall-license-toggle {
+  display: block;
+  width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.35rem 0;
+  border: none;
+  background: transparent;
+  color: rgba(152,142,144,0.78);
+  font-family: var(--font-manrope);
+  font-size: 0.72rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+.focus-paywall-license-toggle:hover {
+  color: rgba(207,196,197,0.88);
 }
 .focus-paywall-license {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  margin-bottom: 0.85rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0;
 }
 .focus-paywall-license-label {
   font-family: var(--font-space);
@@ -1671,10 +1860,11 @@ html.heritage-ui-off .porsche-cluster {
   cursor: pointer;
 }
 .focus-paywall-note {
-  margin-top: 0.85rem;
+  margin-top: 0.45rem;
   font-size: 0.7rem;
   color: rgba(152,142,144,0.7);
-  text-align: center;
+  text-align: left;
+  line-height: 1.45;
 }
 body.focus-paywall-open { overflow: hidden; }
 
@@ -1761,6 +1951,7 @@ body.focus-paywall-open { overflow: hidden; }
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 1.35rem;
   padding: 1.25rem 1.25rem 1.5rem;
+  transition: border-color 0.25s;
 }
 .oasis-console-head {
   display: flex;
@@ -1885,6 +2076,46 @@ body.focus-paywall-open { overflow: hidden; }
   font-size: 0.8rem;
   color: var(--aura-on-surface-variant);
   letter-spacing: 0.06em;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --aura-header-height: calc(env(safe-area-inset-top, 0px) + 4.25rem);
+  }
+  .aura-header {
+    padding-top: calc(0.85rem + env(safe-area-inset-top, 0px));
+    padding-bottom: 0.85rem;
+  }
+  .aura-header::before {
+    bottom: -2.25rem;
+  }
+  #scene-nap .aura-header::before,
+  #scene-camp .aura-header::before,
+  #scene-focus .aura-header::before {
+    bottom: -4.5rem;
+  }
+  .aura-header-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: min(100%, calc(100vw - var(--aura-margin) * 2 - 3rem));
+  }
+  #scene-focus .focus-zen-main {
+    justify-content: flex-start;
+    min-height: auto;
+    padding-top: var(--aura-header-height);
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
+  #scene-focus .focus-zen-clock-block {
+    padding-top: 0.25rem;
+  }
+}
+
+@media (max-height: 820px) and (max-width: 1200px) {
+  #scene-focus .focus-zen-main {
+    justify-content: flex-start;
+    min-height: auto;
+    padding-top: var(--aura-header-height);
+  }
 }
 
 @media (max-width: 768px) {
@@ -2217,7 +2448,10 @@ body.focus-paywall-open { overflow: hidden; }
   .horizon-mode,
   .horizon-play,
   .volume-fill,
-  .aura-bg-layer {
+  .aura-bg-layer,
+  #scene-nap .aura-header::before,
+  #scene-camp .aura-header::before,
+  #scene-focus .aura-header::before {
     transition: none;
   }
   .breath-ring-aura,

@@ -1,5 +1,5 @@
 /**
- * Aetheris Pro 门禁 · Lemon Squeezy 购买与激活码验证
+ * AeroCabin Pro 门禁 · Lemon Squeezy 购买与激活码验证
  *
  * 调试解锁：localStorage.setItem('aerocabin_pro_unlocked','true'); location.reload()
  * 重置状态：?resetPro=1
@@ -21,6 +21,8 @@ const ProGate = (() => {
   const FREE_BACKGROUNDS = new Set(['default']);
   /** 免费时长上限（分钟）：超过此值需 Pro（即 20+） */
   const FREE_DURATION_MAX_MIN = 15;
+  /** 需 Pro 解锁的场景 */
+  const PRO_SCENES = new Set(['camp']);
 
   const MSG = {
     success: '✨ AeroCabin Pro Successfully Activated!',
@@ -116,6 +118,11 @@ const ProGate = (() => {
     return Number(min) > FREE_DURATION_MAX_MIN;
   }
 
+  function isSceneLocked(sceneId) {
+    if (isPro()) return false;
+    return PRO_SCENES.has(sceneId);
+  }
+
   function ensureModal() {
     if (modalEl && document.body.contains(modalEl)) return modalEl;
     modalEl = document.getElementById('focus-paywall');
@@ -131,10 +138,9 @@ const ProGate = (() => {
     return typeof paramsOrFallback === 'string' ? paramsOrFallback : key;
   }
 
-  function setPaywallCopy(featureLabel) {
+  function setPaywallCopy() {
     const modal = ensureModal();
     if (!modal) return;
-    const feature = featureLabel || t('proFeature', 'Pro');
     const title = modal.querySelector('#focus-paywall-title');
     const copy = modal.querySelector('.focus-paywall-copy');
     const eyebrow = modal.querySelector('.focus-paywall-eyebrow');
@@ -142,23 +148,27 @@ const ProGate = (() => {
     const perks = modal.querySelector('.focus-paywall-perks');
     const buy = modal.querySelector('#focus-paywall-buy');
     const dismiss = modal.querySelector('.focus-paywall-dismiss');
+    const licenseToggle = modal.querySelector('#focus-paywall-license-toggle');
+    const licenseBlock = modal.querySelector('#focus-paywall-license-block');
+    const priceLabel = modal.querySelector('.focus-paywall-price-label');
+    const price = modal.querySelector('.focus-paywall-price');
     const licenseLabel = modal.querySelector('[for="focus-paywall-key"]');
     const licenseInput = modal.querySelector('#focus-paywall-key');
     const activateBtn = modal.querySelector('#focus-paywall-activate');
 
-    if (eyebrow) eyebrow.textContent = t('proEyebrow', 'AETHERIS PRO');
-    if (title) title.textContent = t('proTitle', 'Unlock Pro');
-    if (copy) copy.textContent = t('proCopy', { feature });
+    if (eyebrow) eyebrow.textContent = t('proEyebrow', 'AeroCabin Pro');
+    if (title) title.textContent = t('proTitle', 'Unlock the complete cabin experience.');
+    if (copy) copy.textContent = t('proCopy', 'More immersive scenes,\nsoundscapes and relaxation modes.');
     if (perks) {
-      perks.innerHTML = `
-        <li>${t('proPerk1', 'Premium soundscapes & therapy samples')}</li>
-        <li>${t('proPerk2', 'Sessions 20 min and longer')}</li>
-        <li>${t('proPerk3', 'Theater fullscreen · ASMR mixer')}</li>
-      `;
+      perks.innerHTML = [1, 2, 3, 4, 5].map((i) => `<li>${t(`proPerk${i}`, `Pro perk ${i}`)}</li>`).join('');
     }
-    if (note) note.textContent = t('proNote', 'Purchase first, then paste your license key below.');
-    if (buy) buy.textContent = t('proBuy', 'Buy with Lemon Squeezy · $4.99');
+    if (priceLabel) priceLabel.textContent = t('proPriceLabel', 'Founder Price');
+    if (price) price.textContent = t('proPrice', '$14.99 Lifetime');
+    if (note) note.textContent = t('proNote', 'Paste the license key from your purchase email.');
+    if (buy) buy.textContent = t('proBuy', 'Unlock Pro');
     if (dismiss) dismiss.textContent = t('proLater', 'Maybe later');
+    if (licenseToggle) licenseToggle.textContent = t('proLicenseToggle', 'Already purchased? Enter license key');
+    if (licenseBlock) licenseBlock.hidden = true;
     if (licenseLabel) licenseLabel.textContent = t('proLicenseLabel', 'License key');
     if (licenseInput) licenseInput.placeholder = t('proLicensePlaceholder', 'Paste your license key');
     if (activateBtn) {
@@ -199,13 +209,13 @@ const ProGate = (() => {
       console.warn('[ProGate] paywall modal missing');
       return false;
     }
-    setPaywallCopy(featureLabel || t('proFeature', 'Pro'));
+    setPaywallCopy();
     setActivationStatus('');
     setActivating(false);
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('focus-paywall-open');
-    modal.querySelector('#focus-paywall-key')?.focus();
+    modal.querySelector('#focus-paywall-buy')?.focus();
     return false;
   }
 
@@ -216,6 +226,8 @@ const ProGate = (() => {
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('focus-paywall-open');
     setActivating(false);
+    const licenseBlock = modal.querySelector('#focus-paywall-license-block');
+    if (licenseBlock) licenseBlock.hidden = true;
   }
 
   function unlockPro({ closeDelay = 0 } = {}) {
@@ -342,8 +354,44 @@ const ProGate = (() => {
   }
 
   function syncTheaterLocks() {
-    document.querySelectorAll('.aura-theater-btn:not([hidden])').forEach((btn) => {
+    document.querySelectorAll('.aura-theater-btn:not([hidden]):not(.aura-pro-btn)').forEach((btn) => {
       markEl(btn, !isPro(), labelOf(btn));
+    });
+  }
+
+  function syncProShortcutButtons() {
+    document.querySelectorAll('.aura-pro-btn').forEach((btn) => {
+      const hidden = isPro();
+      btn.hidden = hidden;
+      btn.toggleAttribute('hidden', hidden);
+      btn.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+    });
+  }
+
+  function bindProShortcutButtons() {
+    document.querySelectorAll('.aura-pro-btn').forEach((btn) => {
+      if (btn.dataset.proShortcutBound === '1') return;
+      btn.dataset.proShortcutBound = '1';
+
+      let last = 0;
+      let touchHandled = false;
+      const run = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const now = Date.now();
+        if (now - last < 400) return;
+        if (e.type === 'click' && touchHandled) {
+          touchHandled = false;
+          return;
+        }
+        last = now;
+        if (e.type === 'touchend') touchHandled = true;
+        if (isPro()) return;
+        openPaywall(t('proFeature', 'Pro'));
+      };
+
+      btn.addEventListener('touchend', run, { passive: false });
+      btn.addEventListener('click', run);
     });
   }
 
@@ -358,7 +406,7 @@ const ProGate = (() => {
         veil = document.createElement('button');
         veil.type = 'button';
         veil.className = 'pro-panel-veil';
-        veil.innerHTML = `<span class="pro-key">${KEY_SVG}</span><span>${t('oasisVeil', 'ASMR Mixer · Pro unlock')}</span>`;
+        veil.innerHTML = `<span class="pro-key">${KEY_SVG}</span><span>${t('oasisVeil', 'Create your own cabin soundscape · Pro unlock')}</span>`;
         consoleEl.appendChild(veil);
       }
       document.querySelectorAll('.oasis-slider').forEach((input) => {
@@ -381,10 +429,20 @@ const ProGate = (() => {
     });
   }
 
+  function syncSceneLocks() {
+    document.querySelectorAll('.scene-card[data-scene]').forEach((btn) => {
+      const id = btn.dataset.scene;
+      const label = btn.querySelector('.scene-label')?.textContent?.trim() || labelOf(btn) || id;
+      markEl(btn, isSceneLocked(id), label);
+    });
+  }
+
   function syncAllLocks() {
     syncSoundscapeLocks();
     syncBackgroundLocks();
     syncTheaterLocks();
+    syncProShortcutButtons();
+    syncSceneLocks();
     syncOasisLocks();
     syncDurationLocks();
   }
@@ -408,6 +466,15 @@ const ProGate = (() => {
       if (e.target.closest('#focus-paywall-buy')) {
         e.preventDefault();
         openCheckout();
+        return;
+      }
+      if (e.target.closest('#focus-paywall-license-toggle')) {
+        e.preventDefault();
+        const block = modal.querySelector('#focus-paywall-license-block');
+        if (block) {
+          block.hidden = !block.hidden;
+          if (!block.hidden) block.querySelector('#focus-paywall-key')?.focus();
+        }
         return;
       }
       if (e.target.closest('#focus-paywall-activate')) {
@@ -437,16 +504,17 @@ const ProGate = (() => {
       if (!veil) return;
       e.preventDefault();
       e.stopPropagation();
-      requirePro(t('asmrMixer', 'ASMR Mixer'));
+      requirePro(t('asmrMixer', 'Create your own cabin soundscape'));
     });
 
     syncAllLocks();
+    bindProShortcutButtons();
 
     if (typeof I18n !== 'undefined') {
       I18n.onChange(() => {
         syncAllLocks();
         if (modalEl?.classList.contains('open')) {
-          setPaywallCopy(t('proFeature', 'Pro'));
+          setPaywallCopy();
         }
       });
     }
@@ -461,7 +529,10 @@ const ProGate = (() => {
     isSoundscapeLocked,
     isBackgroundLocked,
     isDurationLocked,
+    isSceneLocked,
     syncAllLocks,
+    syncSceneLocks,
+    syncProShortcutButtons,
     syncDurationLocks,
     syncSoundscapeLocks,
     syncBackgroundLocks,

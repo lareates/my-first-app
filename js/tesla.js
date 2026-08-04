@@ -57,7 +57,7 @@ function bindCarPlay(btn, toggleFn) {
 }
 
 function theaterLabel() {
-  return typeof I18n !== 'undefined' ? I18n.t('theaterCn') : 'Browser Fullscreen';
+  return typeof I18n !== 'undefined' ? I18n.t('theaterCn') : 'Immersive Mode';
 }
 
 function buildTheaterReturnQuery() {
@@ -258,7 +258,7 @@ function isChinaBrowserRegion() {
 
 function syncTheaterButtons() {
   const useCn = isChinaBrowserRegion();
-  document.querySelectorAll('.aura-theater-btn').forEach((btn) => {
+  document.querySelectorAll('.aura-theater-btn:not(.aura-pro-btn)').forEach((btn) => {
     const type = btn.dataset.theater;
     const show = useCn ? type === 'cn' : type === 'yt';
     btn.hidden = !show;
@@ -269,7 +269,10 @@ function syncTheaterButtons() {
     }
     bindTheaterButton(btn);
   });
-  if (typeof ProGate !== 'undefined') ProGate.syncTheaterLocks();
+  if (typeof ProGate !== 'undefined') {
+    ProGate.syncTheaterLocks();
+    ProGate.syncProShortcutButtons?.();
+  }
 }
 
 function initTheaterModeUi() {

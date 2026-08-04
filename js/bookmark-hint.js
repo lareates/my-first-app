@@ -52,7 +52,12 @@ const BookmarkHint = (() => {
     const ac = new AbortController();
     hintEl.hidden = false;
 
-    const showTimer = setTimeout(() => hintEl.classList.add('visible'), 500);
+    const showTimer = setTimeout(() => {
+      hintEl.classList.add('visible');
+      if (typeof AuraHeader !== 'undefined' && AuraHeader.isImmersive(screen)) {
+        AuraHeader.showScrim(screen, { delay: 8000 });
+      }
+    }, 500);
 
     let touchHandled = false;
     const dismiss = (e) => {

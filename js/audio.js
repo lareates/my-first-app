@@ -1,5 +1,5 @@
 /**
- * Aetheris Audio Engine
+ * AeroCabin Audio Engine
  * 真实采样 + Web Audio 无缝交叉淡化 / 座舱低通 / 立体声漂移
  */
 const AudioEngine = (() => {
@@ -10,13 +10,13 @@ const AudioEngine = (() => {
   const MODE_SWITCH_FADE_IN = 0.65;
   const LOOKAHEAD_SEC = 30.0; // 提前调度 30 秒，防止车机后台节流
   const SCHEDULER_MS = 1000;
-  /** 车机浏览器输出偏轻，适度抬升主音量 */
+  /** 车机浏览器输出偏轻，适度抬升主音量（相对上一版默认 +20%） */
   const MASTER_GAIN = (() => {
     try {
       const v = localStorage.getItem('aetheris-master-gain');
       if (v) return Math.max(1, Math.min(2.5, parseFloat(v)));
     } catch { /* ignore */ }
-    return /Tesla|QtCarBrowser|QtWebEngine/i.test(navigator.userAgent || '') ? 1.75 : 1.35;
+    return /Tesla|QtCarBrowser|QtWebEngine/i.test(navigator.userAgent || '') ? 2.1 : 1.62;
   })();
 
   /** 21 款特斯拉等低性能车机：流媒体循环，避免 decodeAudioData 爆内存 */
@@ -152,13 +152,13 @@ const AudioEngine = (() => {
     return ctx;
   }
 
-  function claimMediaSession(title = 'Aetheris · Cabin Space') {
+  function claimMediaSession(title = 'AeroCabin') {
     try {
       if (!navigator.mediaSession) return;
       navigator.mediaSession.metadata = new MediaMetadata({
         title,
-        artist: 'Aetheris',
-        album: 'Cabin Space',
+        artist: 'AeroCabin',
+        album: 'AeroCabin',
       });
       navigator.mediaSession.playbackState = 'playing';
     } catch { /* ignore */ }
@@ -451,7 +451,7 @@ const AudioEngine = (() => {
 
       this.nextStart = t;
       this._scheduleAhead(gen);
-      claimMediaSession(`Aetheris · ${preset.label || presetKey}`);
+      claimMediaSession(`AeroCabin · ${preset.label || presetKey}`);
     }
 
     setVolume(volume) {
@@ -758,7 +758,7 @@ const AudioEngine = (() => {
 
       this.active = true;
       this._startWatch();
-      claimMediaSession(`Aetheris · ${preset.label || presetKey}`);
+      claimMediaSession(`AeroCabin · ${preset.label || presetKey}`);
     }
 
     setVolume(volume) {
@@ -1154,7 +1154,7 @@ const AudioEngine = (() => {
         if (woven.bus && woven.mod) woven.mod();
       }, 90);
     }
-    claimMediaSession(`Aetheris · ${mode}`);
+    claimMediaSession(`AeroCabin · ${mode}`);
   }
 
   function setWovenVolume(volume) {
