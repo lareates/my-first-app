@@ -52,11 +52,17 @@ function showScene(name) {
   }
 }
 
-document.querySelectorAll('[data-scene]').forEach(btn => {
+document.addEventListener('aerocabin-enter-scene', (e) => {
+  const scene = e.detail?.scene;
+  if (scene) showScene(scene);
+});
+
+document.querySelectorAll('.scene-card[data-scene]').forEach((btn) => {
   const scene = btn.dataset.scene;
   let last = 0;
   let touchHandled = false;
   const go = (e) => {
+    if (typeof ProGate !== 'undefined' && ProGate.isSceneLocked(scene)) return;
     e.preventDefault();
     e.stopPropagation();
     const now = Date.now();
@@ -67,13 +73,7 @@ document.querySelectorAll('[data-scene]').forEach(btn => {
     }
     last = now;
     if (e.type === 'touchend') touchHandled = true;
-
-    const enter = () => showScene(scene);
-    if (typeof ProGate !== 'undefined' && ProGate.isSceneLocked(scene)) {
-      const label = btn.querySelector('.scene-label')?.textContent?.trim() || scene;
-      if (!ProGate.requirePro(label, enter)) return;
-    }
-    enter();
+    showScene(scene);
   };
   btn.addEventListener('touchend', go, { passive: false });
   btn.addEventListener('click', go);

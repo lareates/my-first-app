@@ -437,6 +437,32 @@ const ProGate = (() => {
     });
   }
 
+  /** 首页场景卡 · 捕获阶段拦截（车机 touchend/click 双触发时更可靠） */
+  function bindSceneCardProGate() {
+    document.querySelectorAll('.scene-card[data-scene]').forEach((btn) => {
+      if (btn.dataset.proSceneBound === '1') return;
+      btn.dataset.proSceneBound = '1';
+
+      const run = (e) => {
+        const scene = btn.dataset.scene;
+        if (!scene || !isSceneLocked(scene)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        const label = btn.querySelector('.scene-label')?.textContent?.trim() || scene;
+        requirePro(label, () => {
+          document.dispatchEvent(new CustomEvent('aerocabin-enter-scene', {
+            detail: { scene },
+            bubbles: false,
+          }));
+        });
+      };
+
+      btn.addEventListener('pointerup', run, { capture: true, passive: false });
+      btn.addEventListener('click', run, { capture: true });
+    });
+  }
+
   function syncAllLocks() {
     syncSoundscapeLocks();
     syncBackgroundLocks();
@@ -509,6 +535,7 @@ const ProGate = (() => {
 
     syncAllLocks();
     bindProShortcutButtons();
+    bindSceneCardProGate();
 
     if (typeof I18n !== 'undefined') {
       I18n.onChange(() => {
