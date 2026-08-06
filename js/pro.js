@@ -1,5 +1,5 @@
 /**
- * AeroCabin Pro 门禁 · Lemon Squeezy 购买与激活码验证
+ * AeroCabin Pro 门禁 · Early Access 邮箱收集（Kit）
  *
  * 调试解锁：localStorage.setItem('aerocabin_pro_unlocked','true'); location.reload()
  * 重置状态：?resetPro=1
@@ -7,11 +7,10 @@
 const ProGate = (() => {
   const STORAGE_PRO = 'aerocabin_pro_unlocked';
   const STORAGE_LEGACY_PRO = 'isPro';
-  const STORAGE_INSTANCE = 'aerocabin_instance_id';
   const STORAGE_LICENSE = 'aerocabin_license_key';
   const STORAGE_PRO_BACKUP = 'aetheris-pro-backup';
-  const LEMON_CHECKOUT_URL = 'https://aerocabin.lemonsqueezy.com/checkout/buy/688d9670-10a9-45f8-a861-a49cea3e24ad';
-  const LEMON_ACTIVATE_URL = 'https://api.lemonsqueezy.com/v1/licenses/activate';
+  const STORAGE_WAITLIST = 'aerocabin_waitlist_joined';
+  const KIT_FORM_URL = 'https://app.kit.com/forms/9772111/subscriptions';
   const KEY_SVG =
     '<svg class="pro-key-icon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="#f5a524" d="M14.5 3a5.5 5.5 0 0 0-5.3 6.9L2 17.1V21h3.9l1.2-1.2 1.4 1.4 2.1-2.1-1.4-1.4L11 15.3A5.5 5.5 0 1 0 14.5 3zm0 3a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg>';
 
@@ -24,19 +23,9 @@ const ProGate = (() => {
   /** 需 Pro 解锁的场景 */
   const PRO_SCENES = new Set(['camp']);
 
-  const MSG = {
-    success: '✨ AeroCabin Pro Successfully Activated!',
-    fail: 'Invalid license key or activation limit reached.',
-  };
-
   let modalEl = null;
   let pendingAction = null;
-  let activating = false;
-
-  function saveLicenseKey(key) {
-    if (!key) return;
-    try { localStorage.setItem(STORAGE_LICENSE, key.trim()); } catch { /* ignore */ }
-  }
+  let submitting = false;
 
   function restoreProState() {
     migrateLegacyPro();
@@ -92,15 +81,12 @@ const ProGate = (() => {
     }
   }
 
-  function getInstanceName() {
-    let id = localStorage.getItem(STORAGE_INSTANCE);
-    if (!id) {
-      id = typeof crypto !== 'undefined' && crypto.randomUUID
-        ? `aerocabin-${crypto.randomUUID()}`
-        : `aerocabin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-      localStorage.setItem(STORAGE_INSTANCE, id);
-    }
-    return id;
+  function isWaitlistJoined() {
+    try { return localStorage.getItem(STORAGE_WAITLIST) === '1'; } catch { return false; }
+  }
+
+  function markWaitlistJoined() {
+    try { localStorage.setItem(STORAGE_WAITLIST, '1'); } catch { /* ignore */ }
   }
 
   function isSoundscapeLocked(id) {
@@ -143,42 +129,32 @@ const ProGate = (() => {
     if (!modal) return;
     const title = modal.querySelector('#focus-paywall-title');
     const copy = modal.querySelector('.focus-paywall-copy');
-    const eyebrow = modal.querySelector('.focus-paywall-eyebrow');
-    const note = modal.querySelector('.focus-paywall-note');
     const perks = modal.querySelector('.focus-paywall-perks');
-    const buy = modal.querySelector('#focus-paywall-buy');
-    const dismiss = modal.querySelector('.focus-paywall-dismiss');
-    const licenseToggle = modal.querySelector('#focus-paywall-license-toggle');
-    const licenseBlock = modal.querySelector('#focus-paywall-license-block');
-    const priceLabel = modal.querySelector('.focus-paywall-price-label');
-    const price = modal.querySelector('.focus-paywall-price');
-    const licenseLabel = modal.querySelector('[for="focus-paywall-key"]');
-    const licenseInput = modal.querySelector('#focus-paywall-key');
-    const activateBtn = modal.querySelector('#focus-paywall-activate');
+    const submitBtn = modal.querySelector('#focus-paywall-submit');
+    const dismissBtns = modal.querySelectorAll('.focus-paywall-dismiss');
+    const emailInput = modal.querySelector('#focus-paywall-email');
+    const emailLabel = modal.querySelector('[for="focus-paywall-email"]');
+    const successText = modal.querySelector('.focus-paywall-success-text');
 
-    if (eyebrow) eyebrow.textContent = t('proEyebrow', 'AeroCabin Pro');
-    if (title) title.textContent = t('proTitle', 'Unlock the complete cabin experience.');
-    if (copy) copy.textContent = t('proCopy', 'More immersive scenes,\nsoundscapes and relaxation modes.');
+    if (title) title.textContent = t('proTitle', 'AeroCabin Pro');
+    if (copy) copy.textContent = t('proCopy', 'Unlock the complete cabin experience.');
     if (perks) {
-      perks.innerHTML = [1, 2, 3, 4, 5].map((i) => `<li>${t(`proPerk${i}`, `Pro perk ${i}`)}</li>`).join('');
+      perks.innerHTML = [1, 2, 3, 4].map((i) => `<li>${t(`proPerk${i}`, `Pro perk ${i}`)}</li>`).join('');
     }
-    if (priceLabel) priceLabel.textContent = t('proPriceLabel', 'Founder Price');
-    if (price) price.textContent = t('proPrice', '$14.99 Lifetime');
-    if (note) note.textContent = t('proNote', 'Paste the license key from your purchase email.');
-    if (buy) buy.textContent = t('proBuy', 'Unlock Pro');
-    if (dismiss) dismiss.textContent = t('proLater', 'Maybe later');
-    if (licenseToggle) licenseToggle.textContent = t('proLicenseToggle', 'Already purchased? Enter license key');
-    if (licenseBlock) licenseBlock.hidden = true;
-    if (licenseLabel) licenseLabel.textContent = t('proLicenseLabel', 'License key');
-    if (licenseInput) licenseInput.placeholder = t('proLicensePlaceholder', 'Paste your license key');
-    if (activateBtn) {
-      activateBtn.textContent = activating
-        ? t('proActivating', 'Activating…')
-        : t('proActivate', 'Activate');
+    if (emailLabel) emailLabel.textContent = t('proEmailLabel', 'Email');
+    if (emailInput) emailInput.placeholder = t('proEmailPlaceholder', 'Your email address');
+    if (submitBtn) {
+      submitBtn.textContent = submitting
+        ? t('proSubmitting', 'Submitting…')
+        : t('proNotify', 'Notify me');
     }
+    dismissBtns.forEach((btn) => {
+      btn.textContent = t('proLater', 'Maybe later');
+    });
+    if (successText) successText.textContent = t('proWaitlistSuccess', "You're on the list 🌙");
   }
 
-  function setActivationStatus(message, type = 'info') {
+  function setFormStatus(message, type = 'info') {
     const status = ensureModal()?.querySelector('#focus-paywall-status');
     if (!status) return;
     status.textContent = message;
@@ -188,18 +164,135 @@ const ProGate = (() => {
     if (type === 'error') status.classList.add('is-error');
   }
 
-  function setActivating(flag) {
-    activating = flag;
+  function setSubmitting(flag) {
+    submitting = flag;
     const modal = ensureModal();
-    const activateBtn = modal?.querySelector('#focus-paywall-activate');
-    const licenseInput = modal?.querySelector('#focus-paywall-key');
-    if (activateBtn) {
-      activateBtn.disabled = flag;
-      activateBtn.textContent = flag
-        ? t('proActivating', 'Activating…')
-        : t('proActivate', 'Activate');
+    const submitBtn = modal?.querySelector('#focus-paywall-submit');
+    const emailInput = modal?.querySelector('#focus-paywall-email');
+    if (submitBtn) {
+      submitBtn.disabled = flag;
+      submitBtn.textContent = flag
+        ? t('proSubmitting', 'Submitting…')
+        : t('proNotify', 'Notify me');
     }
-    if (licenseInput) licenseInput.disabled = flag;
+    if (emailInput) emailInput.disabled = flag;
+  }
+
+  function showWaitlistForm() {
+    const modal = ensureModal();
+    if (!modal) return;
+    modal.querySelector('#focus-paywall-body')?.removeAttribute('hidden');
+    modal.querySelector('#focus-paywall-success')?.setAttribute('hidden', '');
+  }
+
+  function showWaitlistSuccess() {
+    const modal = ensureModal();
+    if (!modal) return;
+    modal.querySelector('#focus-paywall-body')?.setAttribute('hidden', '');
+    const success = modal.querySelector('#focus-paywall-success');
+    if (success) success.removeAttribute('hidden');
+    setFormStatus('');
+  }
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+  }
+
+  function submitViaHiddenForm(email) {
+    return new Promise((resolve) => {
+      let iframe = document.getElementById('kit-submit-frame');
+      if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.name = 'kit-submit-frame';
+        iframe.id = 'kit-submit-frame';
+        iframe.className = 'kit-submit-frame';
+        iframe.tabIndex = -1;
+        iframe.setAttribute('aria-hidden', 'true');
+        iframe.title = '';
+        document.body.appendChild(iframe);
+      }
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = KIT_FORM_URL;
+      form.target = 'kit-submit-frame';
+      form.style.display = 'none';
+
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'email_address';
+      input.value = email;
+      form.appendChild(input);
+
+      document.body.appendChild(form);
+
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        form.remove();
+        resolve(true);
+      };
+
+      const timer = window.setTimeout(finish, 2800);
+      iframe.addEventListener('load', () => {
+        window.clearTimeout(timer);
+        finish();
+      }, { once: true });
+
+      form.submit();
+    });
+  }
+
+  async function submitToKit(email) {
+    const body = new URLSearchParams();
+    body.set('email_address', email);
+
+    try {
+      const res = await fetch(KIT_FORM_URL, {
+        method: 'POST',
+        body,
+        headers: { Accept: 'text/html,application/json' },
+        mode: 'cors',
+      });
+      if (res.ok || res.type === 'opaque') return true;
+    } catch { /* CORS — fall back to hidden form POST */ }
+
+    return submitViaHiddenForm(email);
+  }
+
+  async function handleWaitlistSubmit(e) {
+    e?.preventDefault();
+    if (submitting) return;
+
+    const modal = ensureModal();
+    const emailInput = modal?.querySelector('#focus-paywall-email');
+    const email = emailInput?.value?.trim() || '';
+
+    if (!email) {
+      setFormStatus(t('proEmailRequired', 'Please enter your email address.'), 'error');
+      emailInput?.focus();
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setFormStatus(t('proEmailInvalid', 'Please enter a valid email address.'), 'error');
+      emailInput?.focus();
+      return;
+    }
+
+    setSubmitting(true);
+    setFormStatus('');
+
+    try {
+      await submitToKit(email);
+      markWaitlistJoined();
+      showWaitlistSuccess();
+    } catch (err) {
+      console.warn('[ProGate] waitlist submit failed', err);
+      setFormStatus(t('proSubmitFail', 'Something went wrong. Please try again.'), 'error');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function openPaywall(featureLabel = null, onUnlock) {
@@ -210,12 +303,14 @@ const ProGate = (() => {
       return false;
     }
     setPaywallCopy();
-    setActivationStatus('');
-    setActivating(false);
+    setFormStatus('');
+    setSubmitting(false);
+    if (isWaitlistJoined()) showWaitlistSuccess();
+    else showWaitlistForm();
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('focus-paywall-open');
-    modal.querySelector('#focus-paywall-buy')?.focus();
+    if (!isWaitlistJoined()) modal.querySelector('#focus-paywall-email')?.focus();
     return false;
   }
 
@@ -225,82 +320,12 @@ const ProGate = (() => {
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('focus-paywall-open');
-    setActivating(false);
-    const licenseBlock = modal.querySelector('#focus-paywall-license-block');
-    if (licenseBlock) licenseBlock.hidden = true;
-  }
-
-  function unlockPro({ closeDelay = 0 } = {}) {
-    setPro(true);
-    syncAllLocks();
-    const finish = () => {
-      closePaywall();
-      try { pendingAction?.(); } catch (e) { console.warn('[ProGate] unlock action', e); }
-      pendingAction = null;
-    };
-    if (closeDelay > 0) window.setTimeout(finish, closeDelay);
-    else finish();
-  }
-
-  async function activateLicense(licenseKey) {
-    const body = new URLSearchParams({
-      license_key: licenseKey.trim(),
-      instance_name: getInstanceName(),
-    });
-
-    const res = await fetch(LEMON_ACTIVATE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
-    });
-
-    let data = null;
-    try {
-      data = await res.json();
-    } catch (_) {
-      throw new Error('Invalid response');
-    }
-    return data;
-  }
-
-  async function handleActivate() {
-    if (activating) return;
-    const modal = ensureModal();
-    const licenseInput = modal?.querySelector('#focus-paywall-key');
-    const licenseKey = licenseInput?.value?.trim();
-
-    if (!licenseKey) {
-      setActivationStatus(t('proLicenseRequired', 'Please enter your license key.'), 'error');
-      licenseInput?.focus();
-      return;
-    }
-
-    setActivating(true);
-    setActivationStatus('');
-
-    try {
-      const data = await activateLicense(licenseKey);
-      if (data?.activated === true) {
-        saveLicenseKey(licenseKey);
-        setActivationStatus(MSG.success, 'success');
-        unlockPro({ closeDelay: 1400 });
-        return;
-      }
-      setActivationStatus(MSG.fail, 'error');
-    } catch (e) {
-      console.warn('[ProGate] license activate failed', e);
-      setActivationStatus(MSG.fail, 'error');
-    } finally {
-      setActivating(false);
-    }
-  }
-
-  function openCheckout() {
-    window.open(LEMON_CHECKOUT_URL, '_blank', 'noopener,noreferrer');
+    setSubmitting(false);
+    pendingAction = null;
   }
 
   /**
-   * @returns {boolean} true = 已放行；false = 已弹出付费窗
+   * @returns {boolean} true = 已放行；false = 已弹出 Early Access 窗
    */
   function requirePro(featureLabel, onUnlock) {
     if (isPro()) return true;
@@ -390,8 +415,8 @@ const ProGate = (() => {
         openPaywall(t('proFeature', 'Pro'));
       };
 
-      btn.addEventListener('touchend', run, { passive: false });
-      btn.addEventListener('click', run);
+      btn.addEventListener('pointerup', run, { capture: true, passive: false });
+      btn.addEventListener('click', run, { capture: true });
     });
   }
 
@@ -438,7 +463,6 @@ const ProGate = (() => {
     });
   }
 
-  /** 声景芯片 · 捕获阶段 Pro 拦截（车机） */
   function bindSoundscapeProGate() {
     document.querySelectorAll('.nap-sound-chip[data-soundscape]').forEach((btn) => {
       if (btn.dataset.proSoundBound === '1') return;
@@ -464,7 +488,6 @@ const ProGate = (() => {
     });
   }
 
-  /** ASMR 调音台遮罩 · 捕获阶段（车机 click 常不触发） */
   function bindOasisProGate() {
     document.querySelectorAll('.pro-panel-veil').forEach((veil) => {
       if (veil.dataset.proVeilBound === '1') return;
@@ -482,7 +505,6 @@ const ProGate = (() => {
     });
   }
 
-  /** 沉浸模式按钮 · 捕获阶段 Pro 拦截 */
   function bindTheaterProGate() {
     document.querySelectorAll('.aura-theater-btn:not(.aura-pro-btn)').forEach((btn) => {
       if (btn.dataset.proTheaterBound === '1') return;
@@ -546,6 +568,7 @@ const ProGate = (() => {
         localStorage.removeItem(STORAGE_PRO);
         localStorage.removeItem(STORAGE_LEGACY_PRO);
         localStorage.removeItem(STORAGE_LICENSE);
+        localStorage.removeItem(STORAGE_WAITLIST);
       } else {
         restoreProState();
       }
@@ -554,36 +577,18 @@ const ProGate = (() => {
     }
 
     const modal = ensureModal();
-    modal?.addEventListener('click', (e) => {
-      if (e.target.closest('#focus-paywall-buy')) {
+    modal?.querySelector('#focus-paywall-form')?.addEventListener('submit', handleWaitlistSubmit);
+    modal?.querySelector('#focus-paywall-email')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
         e.preventDefault();
-        openCheckout();
-        return;
-      }
-      if (e.target.closest('#focus-paywall-license-toggle')) {
-        e.preventDefault();
-        const block = modal.querySelector('#focus-paywall-license-block');
-        if (block) {
-          block.hidden = !block.hidden;
-          if (!block.hidden) block.querySelector('#focus-paywall-key')?.focus();
-        }
-        return;
-      }
-      if (e.target.closest('#focus-paywall-activate')) {
-        e.preventDefault();
-        handleActivate();
-        return;
-      }
-      if (e.target.closest('[data-paywall-close]') || e.target.closest('.focus-paywall-backdrop')) {
-        e.preventDefault();
-        closePaywall();
+        handleWaitlistSubmit(e);
       }
     });
 
-    modal?.querySelector('#focus-paywall-key')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
+    modal?.addEventListener('click', (e) => {
+      if (e.target.closest('[data-paywall-close]') || e.target.closest('.focus-paywall-backdrop')) {
         e.preventDefault();
-        handleActivate();
+        closePaywall();
       }
     });
 
