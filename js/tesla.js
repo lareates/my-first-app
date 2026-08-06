@@ -117,49 +117,55 @@ async function resumeAudioIfNeeded() {
 /**
  * 车机触控：全屏按钮需独立绑定 touchend，document 委托在 QtWebEngine 上常失效
  */
+function enterTheaterWithFallback(type) {
+  preserveProBeforeRedirect();
+  let navigated = false;
+  window.addEventListener('pagehide', () => { navigated = true; }, { once: true });
+
+  if (type === 'cn') enterTeslaTheaterModeChina();
+  else enterTeslaTheaterModeViaYouTube();
+
+  window.setTimeout(async () => {
+    if (navigated) return;
+    markTheaterMode();
+    const ok = await tryBrowserFullscreen();
+    if (!ok) console.warn('[Theater] In-page immersive fallback (redirect blocked?)');
+  }, 1400);
+}
+
 function bindTheaterButton(btn) {
   if (!btn || btn.dataset.theaterBound === '1') return;
   btn.dataset.theaterBound = '1';
 
   let last = 0;
-  let touchHandled = false;
 
   const run = (e) => {
     if (btn.hidden) return;
     e.preventDefault();
     e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
     const now = Date.now();
-    if (now - last < 400) return;
-    if (e.type === 'click' && touchHandled) {
-      touchHandled = false;
-      return;
-    }
+    if (now - last < 450) return;
     last = now;
-    if (e.type === 'touchend') touchHandled = true;
 
     const type = btn.dataset.theater;
     const label = theaterLabel();
 
     const enter = async () => {
       await resumeAudioIfNeeded();
-      // 车机 QtWebEngine 通常不支持 Fullscreen API，失败则走 Theater 外链回流
-      if (await tryBrowserFullscreen()) return;
-
-      preserveProBeforeRedirect();
-      if (type === 'cn') enterTeslaTheaterModeChina();
-      else enterTeslaTheaterModeViaYouTube();
+      if (await tryBrowserFullscreen()) {
+        markTheaterMode();
+        return;
+      }
+      enterTheaterWithFallback(type);
     };
 
-    const launch = () => {
-      if (typeof ProGate !== 'undefined' && !ProGate.requirePro(label, enter)) return;
-      enter();
-    };
-
-    resumeAudioIfNeeded().finally(launch);
+    if (typeof ProGate !== 'undefined' && !ProGate.requirePro(label, enter)) return;
+    resumeAudioIfNeeded().finally(enter);
   };
 
-  btn.addEventListener('touchend', run, { passive: false });
-  btn.addEventListener('click', run);
+  btn.addEventListener('pointerup', run, { capture: true, passive: false });
+  btn.addEventListener('click', run, { capture: true });
 }
 
 function getAppUrl() {

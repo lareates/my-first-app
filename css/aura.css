@@ -55,6 +55,18 @@
   pointer-events: none;
 }
 
+/* 车机沉浸模式回退：外链跳转被拦截时隐藏顶栏/底栏 */
+html.theater-mode .aura-header,
+html.theater-mode .home-footer {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+html.theater-mode .aura-horizon,
+html.theater-mode .horizon-bar {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 /* ─── Screens ─── */
 #scene-camp {
   background: #000000;
@@ -1447,6 +1459,10 @@ html.heritage-ui-off .porsche-cluster {
   isolation: isolate;
   border-color: rgba(245, 165, 36, 0.28);
   box-shadow: none;
+}
+.oasis-console.pro-locked-panel .oasis-faders,
+.oasis-console.pro-locked-panel .oasis-slider {
+  pointer-events: none;
 }
 .oasis-console.pro-locked-panel::before {
   content: '';

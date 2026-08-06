@@ -420,6 +420,7 @@ const ProGate = (() => {
         input.closest('.oasis-fader')?.classList.remove('pro-locked');
       });
     }
+    bindOasisProGate();
   }
 
   function syncDurationLocks(root = document) {
@@ -437,7 +438,72 @@ const ProGate = (() => {
     });
   }
 
-  /** 首页场景卡 · 捕获阶段拦截（车机 touchend/click 双触发时更可靠） */
+  /** 声景芯片 · 捕获阶段 Pro 拦截（车机） */
+  function bindSoundscapeProGate() {
+    document.querySelectorAll('.nap-sound-chip[data-soundscape]').forEach((btn) => {
+      if (btn.dataset.proSoundBound === '1') return;
+      btn.dataset.proSoundBound = '1';
+
+      const run = (e) => {
+        const id = btn.dataset.soundscape;
+        if (!id || !isSoundscapeLocked(id)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        const label = labelOf(btn) || id;
+        requirePro(label, () => {
+          document.dispatchEvent(new CustomEvent('aerocabin-soundscape-select', {
+            detail: { id },
+            bubbles: false,
+          }));
+        });
+      };
+
+      btn.addEventListener('pointerup', run, { capture: true, passive: false });
+      btn.addEventListener('click', run, { capture: true });
+    });
+  }
+
+  /** ASMR 调音台遮罩 · 捕获阶段（车机 click 常不触发） */
+  function bindOasisProGate() {
+    document.querySelectorAll('.pro-panel-veil').forEach((veil) => {
+      if (veil.dataset.proVeilBound === '1') return;
+      veil.dataset.proVeilBound = '1';
+
+      const run = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        requirePro(t('asmrMixer', 'Create your own cabin soundscape'));
+      };
+
+      veil.addEventListener('pointerup', run, { capture: true, passive: false });
+      veil.addEventListener('click', run, { capture: true });
+    });
+  }
+
+  /** 沉浸模式按钮 · 捕获阶段 Pro 拦截 */
+  function bindTheaterProGate() {
+    document.querySelectorAll('.aura-theater-btn:not(.aura-pro-btn)').forEach((btn) => {
+      if (btn.dataset.proTheaterBound === '1') return;
+      btn.dataset.proTheaterBound = '1';
+
+      const run = (e) => {
+        if (btn.hidden || isPro()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        const label = btn.dataset.theater === 'cn'
+          ? t('theaterCn', 'Immersive Mode')
+          : t('theaterYt', 'Immersive Mode');
+        requirePro(label);
+      };
+
+      btn.addEventListener('pointerup', run, { capture: true, passive: false });
+      btn.addEventListener('click', run, { capture: true });
+    });
+  }
+
   function bindSceneCardProGate() {
     document.querySelectorAll('.scene-card[data-scene]').forEach((btn) => {
       if (btn.dataset.proSceneBound === '1') return;
@@ -525,21 +591,19 @@ const ProGate = (() => {
       if (e.key === 'Escape' && modalEl?.classList.contains('open')) closePaywall();
     });
 
-    document.addEventListener('click', (e) => {
-      const veil = e.target.closest('.pro-panel-veil');
-      if (!veil) return;
-      e.preventDefault();
-      e.stopPropagation();
-      requirePro(t('asmrMixer', 'Create your own cabin soundscape'));
-    });
-
     syncAllLocks();
     bindProShortcutButtons();
     bindSceneCardProGate();
+    bindSoundscapeProGate();
+    bindOasisProGate();
+    bindTheaterProGate();
 
     if (typeof I18n !== 'undefined') {
       I18n.onChange(() => {
         syncAllLocks();
+        bindSoundscapeProGate();
+        bindOasisProGate();
+        bindTheaterProGate();
         if (modalEl?.classList.contains('open')) {
           setPaywallCopy();
         }

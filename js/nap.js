@@ -319,6 +319,14 @@ function initNap(cleanupFns) {
 
   bindCarPlay(playBtn, togglePlay);
 
+  const onSoundscapeUnlock = (e) => {
+    const sc = e.detail?.id;
+    if (!sc || !screen.classList.contains('active')) return;
+    unlockAndPlay(() => applySoundscape(sc, true));
+  };
+  document.addEventListener('aerocabin-soundscape-select', onSoundscapeUnlock);
+  cleanupFns.push(() => document.removeEventListener('aerocabin-soundscape-select', onSoundscapeUnlock));
+
   let lastPanelTap = 0;
   let panelTouchHandled = false;
 

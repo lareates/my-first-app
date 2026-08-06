@@ -36,7 +36,7 @@ const AuraHeader = (() => {
 
   function shouldIgnoreTouchTarget(target) {
     return !!target.closest(
-      '.aura-horizon, .horizon-bar, .bg-picker, .timer-sheet, .focus-paywall, .bookmark-hint'
+      '.aura-horizon, .horizon-bar, .bg-picker, .timer-sheet, .focus-paywall, .bookmark-hint, .aura-theater-actions, .aura-theater-btn, .aura-pro-btn'
     );
   }
 
