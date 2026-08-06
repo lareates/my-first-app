@@ -23,6 +23,12 @@ const ProGate = (() => {
   /** 需 Pro 解锁的场景 */
   const PRO_SCENES = new Set(['camp']);
 
+  /**
+   * 暂时隐藏所有 Pro 锁定入口（露营、带锁声景、沉浸模式、壁纸切换、ASMR 调音台）
+   * 后期恢复：改为 false 即可
+   */
+  const PRO_LOCKED_UI_HIDDEN = true;
+
   let modalEl = null;
   let pendingAction = null;
   let submitting = false;
@@ -109,6 +115,10 @@ const ProGate = (() => {
     return PRO_SCENES.has(sceneId);
   }
 
+  function applyLockedUiVisibility() {
+    document.documentElement.classList.toggle('pro-locked-ui-hidden', PRO_LOCKED_UI_HIDDEN);
+  }
+
   function ensureModal() {
     if (modalEl && document.body.contains(modalEl)) return modalEl;
     modalEl = document.getElementById('focus-paywall');
@@ -137,19 +147,19 @@ const ProGate = (() => {
     const successText = modal.querySelector('.focus-paywall-success-text');
 
     if (title) title.textContent = t('proTitle', 'AeroCabin Pro');
-    if (copy) copy.textContent = t('proCopy', 'Unlock the complete cabin experience.');
+    if (copy) copy.textContent = t('proCopy', 'Unlock more immersive in-cabin experiences.');
     if (perks) {
       perks.innerHTML = [1, 2, 3, 4].map((i) => `<li>${t(`proPerk${i}`, `Pro perk ${i}`)}</li>`).join('');
     }
     if (emailLabel) emailLabel.textContent = t('proEmailLabel', 'Email');
-    if (emailInput) emailInput.placeholder = t('proEmailPlaceholder', 'Your email address');
+    if (emailInput) emailInput.placeholder = t('proEmailPlaceholder', 'Enter email for launch updates');
     if (submitBtn) {
       submitBtn.textContent = submitting
         ? t('proSubmitting', 'Submitting…')
         : t('proNotify', 'Notify me');
     }
     dismissBtns.forEach((btn) => {
-      btn.textContent = t('proLater', 'Maybe later');
+      btn.textContent = t('proLater', 'Continue exploring');
     });
     if (successText) successText.textContent = t('proWaitlistSuccess', "You're on the list 🌙");
   }
@@ -597,6 +607,7 @@ const ProGate = (() => {
     });
 
     syncAllLocks();
+    applyLockedUiVisibility();
     bindProShortcutButtons();
     bindSceneCardProGate();
     bindSoundscapeProGate();
@@ -606,6 +617,7 @@ const ProGate = (() => {
     if (typeof I18n !== 'undefined') {
       I18n.onChange(() => {
         syncAllLocks();
+        applyLockedUiVisibility();
         bindSoundscapeProGate();
         bindOasisProGate();
         bindTheaterProGate();
@@ -638,6 +650,8 @@ const ProGate = (() => {
     FREE_DURATION_MAX_MIN,
     preserveForNavigation,
     init,
+    PRO_LOCKED_UI_HIDDEN,
+    applyLockedUiVisibility,
   };
 })();
 

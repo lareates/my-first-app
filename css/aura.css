@@ -67,6 +67,28 @@ html.theater-mode .horizon-bar {
   pointer-events: none;
 }
 
+/* 暂时隐藏 Pro 锁定入口 · pro.js PRO_LOCKED_UI_HIDDEN=false 可恢复 */
+html.pro-locked-ui-hidden .scene-card[data-scene="camp"] {
+  display: none !important;
+}
+html.pro-locked-ui-hidden .nap-sound-chip.pro-locked,
+html.pro-locked-ui-hidden .nap-sound-chip[data-pro-locked="1"] {
+  display: none !important;
+}
+html.pro-locked-ui-hidden .timer-sheet-option.pro-locked,
+html.pro-locked-ui-hidden .timer-sheet-option[data-pro-locked="1"] {
+  display: none !important;
+}
+html.pro-locked-ui-hidden .aura-theater-btn:not(.aura-pro-btn) {
+  display: none !important;
+}
+html.pro-locked-ui-hidden .nap-bg-btn-wrap {
+  display: none !important;
+}
+html.pro-locked-ui-hidden #panel-oasis {
+  display: none !important;
+}
+
 /* ─── Screens ─── */
 #scene-camp {
   background: #000000;
