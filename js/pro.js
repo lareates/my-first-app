@@ -296,7 +296,7 @@ const ProGate = (() => {
     try {
       await submitToKit(email);
       markWaitlistJoined();
-      if (typeof Analytics !== 'undefined') Analytics.track('email_submit');
+      trackEvent('email_submit');
       showWaitlistSuccess();
     } catch (err) {
       console.warn('[ProGate] waitlist submit failed', err);
@@ -423,7 +423,7 @@ const ProGate = (() => {
         last = now;
         if (e.type === 'touchend') touchHandled = true;
         if (isPro()) return;
-        if (typeof Analytics !== 'undefined') Analytics.track('pro_click');
+        trackEvent('pro_click');
         openPaywall(t('proFeature', 'Pro'));
       };
 

@@ -28,7 +28,6 @@ function showScene(name) {
 
   screens[name]?.classList.add('active');
   currentScene = name;
-  if (typeof Analytics !== 'undefined') Analytics.trackScene(name);
   if (name !== 'nap' && name !== 'camp') Ambient.start(name);
 
   BookmarkHint.tryShow(screens[name], cleanupFns);
@@ -74,6 +73,9 @@ document.querySelectorAll('.scene-card[data-scene]').forEach((btn) => {
     }
     last = now;
     if (e.type === 'touchend') touchHandled = true;
+    if (scene === 'nap') trackEvent('scene_nap');
+    else if (scene === 'camp') trackEvent('scene_camping');
+    else if (scene === 'focus') trackEvent('scene_charging');
     showScene(scene);
   };
   btn.addEventListener('touchend', go, { passive: false });

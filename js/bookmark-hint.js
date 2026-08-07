@@ -68,6 +68,7 @@ const BookmarkHint = (() => {
         return;
       }
       if (e.type === 'touchend') touchHandled = true;
+      trackEvent('bookmark_guide_click');
       hintEl.classList.remove('visible');
       setTimeout(() => {
         hintEl.hidden = true;
