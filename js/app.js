@@ -28,6 +28,7 @@ function showScene(name) {
 
   screens[name]?.classList.add('active');
   currentScene = name;
+  if (typeof Analytics !== 'undefined') Analytics.trackScene(name);
   if (name !== 'nap' && name !== 'camp') Ambient.start(name);
 
   BookmarkHint.tryShow(screens[name], cleanupFns);
