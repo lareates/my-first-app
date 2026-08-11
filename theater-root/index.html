@@ -2,6 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <script>
+  (function () {
+    if (location.protocol === 'http:' && location.hostname === 'aerocabin.app') {
+      location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+    }
+  })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AeroCabin · 全屏跳板</title>
   <style>

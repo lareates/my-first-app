@@ -247,20 +247,31 @@ function initNap(cleanupFns) {
     setPlayIcon(playBtn, false);
     playBtn.classList.remove('playing');
     detachBreathMotion();
+
+    const lowPower = typeof AudioEngine !== 'undefined' && AudioEngine.LOW_POWER;
+    if (lowPower) {
+      screen.classList.add('nap-wake-lite');
+      napBg?.pauseMotion?.();
+    }
+
     screen.classList.add('nap-waking');
     title.textContent = I18n.t('gentleWakeTitle');
     hintEl.textContent = I18n.t('gentleWakeHint');
     hintEl.style.opacity = '0.85';
 
-    AudioEngine.fadeOutNapAudio(8);
-    requestAnimationFrame(() => dawnOverlay?.classList.add('active'));
-
-    setTimeout(() => AudioEngine.playBirdChorus(), 2000);
+    AudioEngine.fadeOutNapAudio(lowPower ? 4 : 8);
+    if (lowPower) {
+      dawnOverlay?.classList.add('active');
+      setTimeout(() => AudioEngine.playBirdChorus(), 600);
+    } else {
+      requestAnimationFrame(() => dawnOverlay?.classList.add('active'));
+      setTimeout(() => AudioEngine.playBirdChorus(), 2000);
+    }
   }
 
   function resetWakeState() {
     waking = false;
-    screen.classList.remove('nap-waking');
+    screen.classList.remove('nap-waking', 'nap-wake-lite');
     dawnOverlay?.classList.remove('active');
     const cfg = NAP_MODES[mode];
     title.textContent = cfg.title;

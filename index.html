@@ -2,12 +2,20 @@
 <html lang="en" class="dark heritage-ui-off pro-locked-ui-hidden">
 <head>
   <meta charset="UTF-8">
+  <script>
+  (function () {
+    if (location.protocol === 'http:' && location.hostname === 'aerocabin.app') {
+      location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+    }
+  })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0c0f0f">
   <title>AeroCabin</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="css/aura.css?v=23">
-  <link rel="stylesheet" href="css/nap-scenes.css?v=3">
+  <link rel="canonical" href="https://aerocabin.app/">
+  <link rel="stylesheet" href="css/aura.css?v=24">
+  <link rel="stylesheet" href="css/nap-scenes.css?v=4">
   <link rel="stylesheet" href="css/porsche-gauges.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -673,11 +681,11 @@
   <script src="js/timer-picker.js?v=2"></script>
   <script src="js/tesla.js?v=7"></script>
   <script src="js/art.js"></script>
-  <script src="js/audio.js?v=car5"></script>
+  <script src="js/audio.js?v=car6"></script>
   <script src="js/bookmark-hint.js?v=3"></script>
   <script src="js/nap-ambient.js"></script>
-  <script src="js/nap-bg.js?v=2"></script>
-  <script src="js/nap.js?v=3"></script>
+  <script src="js/nap-bg.js?v=3"></script>
+  <script src="js/nap.js?v=4"></script>
   <script src="js/camp.js"></script>
   <script src="js/focus-theme.js"></script>
   <script src="js/porsche-cluster.js"></script>

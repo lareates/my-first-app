@@ -257,5 +257,6 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     apply,
     closeSheet,
     isSheetOpen: () => sheet.classList.contains('open'),
+    pauseMotion: () => detachMotion(),
   };
 }

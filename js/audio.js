@@ -1424,7 +1424,32 @@ const AudioEngine = (() => {
   }
 
   // ─── 过渡音效 ───
+  function playBirdChorusLite() {
+    const c = ensureCtx();
+    const t = c.currentTime;
+    [2800, 3200, 2900].forEach((f, i) => {
+      const start = t + 0.25 + i * 0.85;
+      const dur = 0.12;
+      const osc = c.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, start);
+      osc.frequency.exponentialRampToValueAtTime(f * 0.85, start + dur);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.035, start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(start);
+      osc.stop(start + dur + 0.05);
+    });
+  }
+
   function playBirdChorus() {
+    if (LOW_POWER) {
+      playBirdChorusLite();
+      return;
+    }
     const c = ensureCtx();
     const t = c.currentTime;
     const totalSec = 10;

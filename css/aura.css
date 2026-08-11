@@ -829,6 +829,32 @@ body.timer-sheet-open { overflow: hidden; }
 #scene-nap.nap-waking .nap-scene-bg-layer { opacity: 0.35 !important; }
 #scene-nap.nap-waking .aura-title { color: rgba(255, 235, 210, 0.95); }
 
+/* 车机轻量唤醒：停动画、缩短过渡，避免 QtWebEngine 闪退 */
+#scene-nap.nap-wake-lite .nap-breathe-ring,
+#scene-nap.nap-wake-lite .nap-meditate-glow,
+#scene-nap.nap-wake-lite .nap-meditate-blob,
+#scene-nap.nap-wake-lite .nap-meditate-blob-inner,
+#scene-nap.nap-wake-lite .nap-sleep-moon,
+#scene-nap.nap-wake-lite .nap-sleep-star,
+#scene-nap.nap-wake-lite .nap-sleep-wave-back,
+#scene-nap.nap-wake-lite .nap-sleep-wave-front {
+  animation: none !important;
+}
+#scene-nap.nap-wake-lite .nap-meditate-glow {
+  filter: none;
+}
+#scene-nap.nap-wake-lite .nap-dawn-overlay {
+  transition: opacity 4s ease-out;
+}
+#scene-nap.nap-wake-lite.nap-waking .nap-mode-backgrounds {
+  opacity: 0.2;
+  transition: opacity 3s ease;
+}
+#scene-nap.nap-wake-lite.nap-waking .aura-bg-layer,
+#scene-nap.nap-wake-lite.nap-waking .nap-scene-bg-layer {
+  transition: opacity 3s ease;
+}
+
 .bg-sheet-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
