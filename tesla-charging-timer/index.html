@@ -26,11 +26,20 @@
   <meta name="twitter:title" content="Tesla Charging Timer – Make Charging Breaks Better | AeroCabin">
   <meta name="twitter:description" content="Use a simple countdown timer during Tesla charging breaks. Runs directly in the Tesla browser with no installation required.">
   <meta name="twitter:image" content="https://aerocabin.app/assets/backgrounds/garden.png">
-  <link rel="stylesheet" href="/css/landing.css">
+  <link rel="stylesheet" href="/css/landing.css?v=2">
+  <style>
+    /* 关键样式：避免主题 class 或外部 CSS 异常时正文不可见 */
+    main.landing-page {
+      display: block;
+      position: relative;
+      z-index: 1;
+      color: rgba(226, 226, 226, 0.88);
+    }
+  </style>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="d08be28e-7d15-4e88-91e4-0f8fa352b8a3"></script>
 </head>
-<body class="landing-page--charge">
-  <div class="landing-bg" aria-hidden="true"></div>
+<body>
+  <div class="landing-bg landing-bg--timer" aria-hidden="true"></div>
   <main class="landing-page">
     <a href="/" class="landing-back">← AeroCabin</a>
     <p class="landing-eyebrow">Charging · Timer · Break</p>

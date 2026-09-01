@@ -21,7 +21,7 @@ html, body {
     #0c0f0f;
 }
 
-.landing-page--charge .landing-bg {
+.landing-bg--timer {
   background:
     radial-gradient(ellipse 65% 50% at 75% 80%, rgba(210, 187, 255, 0.08) 0%, transparent 55%),
     radial-gradient(ellipse 50% 40% at 20% 25%, rgba(90, 70, 180, 0.1) 0%, transparent 52%),
@@ -29,6 +29,7 @@ html, body {
 }
 
 .landing-page {
+  display: block;
   position: relative;
   z-index: 1;
   max-width: 42rem;
