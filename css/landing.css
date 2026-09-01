@@ -1,0 +1,194 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  min-height: 100%;
+  background: #0c0f0f;
+  color: rgba(226, 226, 226, 0.88);
+  font-family: system-ui, -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.landing-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 18% 85%, rgba(195, 192, 255, 0.09) 0%, transparent 58%),
+    radial-gradient(ellipse 55% 45% at 82% 18%, rgba(54, 38, 206, 0.11) 0%, transparent 55%),
+    #0c0f0f;
+}
+
+.landing-page--charge .landing-bg {
+  background:
+    radial-gradient(ellipse 65% 50% at 75% 80%, rgba(210, 187, 255, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 20% 25%, rgba(90, 70, 180, 0.1) 0%, transparent 52%),
+    #0c0f0f;
+}
+
+.landing-page {
+  position: relative;
+  z-index: 1;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: clamp(1.75rem, 4vw, 2.75rem) clamp(1.25rem, 4vw, 1.75rem) 3rem;
+}
+
+.landing-back {
+  display: inline-block;
+  margin-bottom: 2rem;
+  font-size: 0.82rem;
+  color: rgba(210, 187, 255, 0.55);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+}
+
+.landing-back:hover { color: rgba(210, 187, 255, 0.85); }
+
+.landing-eyebrow {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(210, 187, 255, 0.45);
+  margin-bottom: 0.65rem;
+}
+
+.landing-page h1 {
+  font-size: clamp(1.55rem, 4vw, 2rem);
+  font-weight: 300;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  color: rgba(226, 226, 226, 0.95);
+}
+
+.landing-lead {
+  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+  font-weight: 300;
+  line-height: 1.55;
+  color: rgba(226, 226, 226, 0.82);
+  margin-bottom: 0.85rem;
+}
+
+.landing-copy {
+  font-size: 0.88rem;
+  color: rgba(207, 196, 197, 0.68);
+  margin-bottom: 1.75rem;
+  max-width: 36rem;
+}
+
+.landing-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 2rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  background: rgba(12, 15, 15, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.landing-features li {
+  font-size: 0.86rem;
+  color: rgba(207, 196, 197, 0.78);
+  padding-left: 1.1rem;
+  position: relative;
+}
+
+.landing-features li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(210, 187, 255, 0.55);
+}
+
+.landing-note {
+  font-size: 0.82rem;
+  color: rgba(207, 196, 197, 0.55);
+  margin-bottom: 1.75rem;
+}
+
+.landing-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(210, 187, 255, 0.35);
+  background: rgba(54, 38, 206, 0.18);
+  color: rgba(226, 226, 226, 0.92);
+  font-size: 0.88rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.landing-cta:hover {
+  background: rgba(54, 38, 206, 0.32);
+  border-color: rgba(210, 187, 255, 0.5);
+}
+
+.landing-related {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.landing-related-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(207, 196, 197, 0.38);
+  margin-bottom: 0.65rem;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+.landing-related a {
+  display: inline-block;
+  margin-right: 1.25rem;
+  font-size: 0.84rem;
+  color: rgba(210, 187, 255, 0.62);
+  text-decoration: none;
+}
+
+.landing-related a:hover { color: rgba(210, 187, 255, 0.9); }
+
+.landing-footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.landing-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.landing-footer a {
+  font-size: 0.72rem;
+  color: rgba(207, 196, 197, 0.38);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+.landing-footer a:hover { color: rgba(207, 196, 197, 0.58); }
+
+.landing-disclaimer {
+  font-size: 0.72rem;
+  color: rgba(207, 196, 197, 0.32);
+}
