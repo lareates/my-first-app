@@ -24,7 +24,8 @@ const ProGate = (() => {
   const PRO_SCENES = new Set(['camp']);
 
   /**
-   * 暂时隐藏所有 Pro 锁定入口（露营、带锁声景、沉浸模式、壁纸切换、ASMR 调音台）
+   * 暂时隐藏 Pro 锁定入口（露营、带锁声景、壁纸切换、ASMR 调音台、加时长）
+   * 沉浸模式为免费功能，不受此开关影响。
    * 后期恢复：改为 false 即可
    */
   const PRO_LOCKED_UI_HIDDEN = true;
@@ -390,8 +391,8 @@ const ProGate = (() => {
   }
 
   function syncTheaterLocks() {
-    document.querySelectorAll('.aura-theater-btn:not([hidden]):not(.aura-pro-btn)').forEach((btn) => {
-      markEl(btn, !isPro(), labelOf(btn));
+    document.querySelectorAll('.aura-theater-btn:not(.aura-pro-btn)').forEach((btn) => {
+      markEl(btn, false, labelOf(btn));
     });
   }
 
@@ -518,24 +519,7 @@ const ProGate = (() => {
   }
 
   function bindTheaterProGate() {
-    document.querySelectorAll('.aura-theater-btn:not(.aura-pro-btn)').forEach((btn) => {
-      if (btn.dataset.proTheaterBound === '1') return;
-      btn.dataset.proTheaterBound = '1';
-
-      const run = (e) => {
-        if (btn.hidden || isPro()) return;
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-        const label = btn.dataset.theater === 'cn'
-          ? t('theaterCn', 'Immersive Mode')
-          : t('theaterYt', 'Immersive Mode');
-        requirePro(label);
-      };
-
-      btn.addEventListener('pointerup', run, { capture: true, passive: false });
-      btn.addEventListener('click', run, { capture: true });
-    });
+    /* Immersive mode is free; no Pro intercept. */
   }
 
   function bindSceneCardProGate() {

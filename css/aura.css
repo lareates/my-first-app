@@ -79,9 +79,6 @@ html.pro-locked-ui-hidden .timer-sheet-option.pro-locked,
 html.pro-locked-ui-hidden .timer-sheet-option[data-pro-locked="1"] {
   display: none !important;
 }
-html.pro-locked-ui-hidden .aura-theater-btn:not(.aura-pro-btn) {
-  display: none !important;
-}
 html.pro-locked-ui-hidden .nap-bg-btn-wrap {
   display: none !important;
 }

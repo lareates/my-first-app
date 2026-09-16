@@ -1,6 +1,7 @@
 /** 特斯拉 / 车机浏览器音频解锁 + 浏览器全屏 */
 const APP_CANONICAL = 'https://aerocabin.app/';
-const THEATER_FLAG = 'aetheris-theater';
+const THEATER_FLAG = 'aetheris-theater-bounce';
+const THEATER_FLAG_LEGACY = 'aetheris-theater';
 /** 国行全屏跳板：须为「无路径」根站，才能通过 1905 校验（与 s3xy.top 同理） */
 const THEATER_BOUNCE_ORIGIN = 'https://lareates.github.io';
 const THEATER_BOUNCE_HOSTS = new Set([
@@ -56,10 +57,6 @@ function bindCarPlay(btn, toggleFn) {
   btn.addEventListener('click', run);
 }
 
-function theaterLabel() {
-  return typeof I18n !== 'undefined' ? I18n.t('theaterCn') : 'Immersive Mode';
-}
-
 function buildTheaterReturnQuery() {
   const q = new URLSearchParams(location.search);
   q.set('theater', '1');
@@ -76,13 +73,19 @@ function isBrowserFullscreenActive() {
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
 
+async function exitBrowserFullscreen() {
+  try {
+    if (!isBrowserFullscreenActive()) return;
+    if (document.exitFullscreen) await document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } catch (e) {
+    console.warn('[Theater] exit fullscreen failed', e);
+  }
+}
+
 async function tryBrowserFullscreen() {
   try {
-    if (isBrowserFullscreenActive()) {
-      if (document.exitFullscreen) await document.exitFullscreen();
-      else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
-      return true;
-    }
+    if (isBrowserFullscreenActive()) return true;
     const candidates = [document.documentElement, document.body].filter(Boolean);
     for (const el of candidates) {
       try {
@@ -101,7 +104,7 @@ async function tryBrowserFullscreen() {
   } catch (e) {
     console.warn('[Theater] Fullscreen API unavailable', e);
   }
-  return false;
+  return isBrowserFullscreenActive();
 }
 
 async function resumeAudioIfNeeded() {
@@ -127,9 +130,9 @@ function enterTheaterWithFallback(type) {
 
   window.setTimeout(async () => {
     if (navigated) return;
-    markTheaterMode();
     const ok = await tryBrowserFullscreen();
-    if (!ok) console.warn('[Theater] In-page immersive fallback (redirect blocked?)');
+    if (ok) markTheaterMode({ persist: false });
+    else console.warn('[Theater] In-page immersive fallback (redirect blocked?)');
   }, 1400);
 }
 
@@ -149,18 +152,20 @@ function bindTheaterButton(btn) {
     last = now;
 
     const type = btn.dataset.theater;
-    const label = theaterLabel();
 
     const enter = async () => {
       await resumeAudioIfNeeded();
+      if (isBrowserFullscreenActive()) {
+        await exitBrowserFullscreen();
+        return;
+      }
       if (await tryBrowserFullscreen()) {
-        markTheaterMode();
+        markTheaterMode({ persist: false });
         return;
       }
       enterTheaterWithFallback(type);
     };
 
-    if (typeof ProGate !== 'undefined' && !ProGate.requirePro(label, enter)) return;
     resumeAudioIfNeeded().finally(enter);
   };
 
@@ -203,7 +208,7 @@ function getChinaTheaterBounceUrl() {
   return `${getTheaterBounceOrigin()}?www.1905.com&to=${to}`;
 }
 
-function isTheaterMode() {
+function isTeslaTheaterReturn() {
   try {
     if (sessionStorage.getItem(THEATER_FLAG) === '1') return true;
   } catch {}
@@ -218,8 +223,10 @@ function isTheaterMode() {
   );
 }
 
-function markTheaterMode() {
-  try { sessionStorage.setItem(THEATER_FLAG, '1'); } catch {}
+function markTheaterMode({ persist = false } = {}) {
+  if (persist) {
+    try { sessionStorage.setItem(THEATER_FLAG, '1'); } catch {}
+  }
   document.documentElement.classList.add('theater-mode');
   try {
     const url = new URL(location.href);
@@ -228,6 +235,26 @@ function markTheaterMode() {
       history.replaceState({}, '', url.pathname + url.search + url.hash);
     }
   } catch {}
+}
+
+function clearTheaterMode() {
+  try {
+    sessionStorage.removeItem(THEATER_FLAG);
+    sessionStorage.removeItem(THEATER_FLAG_LEGACY);
+  } catch {}
+  document.documentElement.classList.remove('theater-mode');
+}
+
+function syncTheaterChrome() {
+  if (isBrowserFullscreenActive()) {
+    markTheaterMode({ persist: false });
+    return;
+  }
+  if (isTeslaTheaterReturn()) {
+    markTheaterMode({ persist: true });
+    return;
+  }
+  clearTheaterMode();
 }
 
 function enterTeslaTheaterModeChina() {
@@ -282,7 +309,9 @@ function syncTheaterButtons() {
 }
 
 function initTheaterModeUi() {
-  if (isTheaterMode()) markTheaterMode();
+  syncTheaterChrome();
+  document.addEventListener('fullscreenchange', syncTheaterChrome);
+  document.addEventListener('webkitfullscreenchange', syncTheaterChrome);
   syncTheaterButtons();
   if (typeof I18n !== 'undefined') I18n.onChange(syncTheaterButtons);
 }
