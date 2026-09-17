@@ -57,8 +57,39 @@ function bindCarPlay(btn, toggleFn) {
   btn.addEventListener('click', run);
 }
 
-function isTeslaBrowser() {
-  return /Tesla|QtCarBrowser|QtWebEngine/i.test(navigator.userAgent || '');
+/**
+ * 车机浏览器识别：很多特斯拉 UA 不含 Tesla，需启发式判断。
+ * 可强制：localStorage.setItem('aetheris-car-browser','1')
+ */
+function isCarBrowser() {
+  try {
+    const flag = localStorage.getItem('aetheris-car-browser');
+    if (flag === '1') return true;
+    if (flag === '0') return false;
+  } catch { /* ignore */ }
+
+  const ua = navigator.userAgent || '';
+  if (/Tesla|QtCarBrowser|QtWebEngine/i.test(ua)) return true;
+
+  const coarse = (() => {
+    try { return window.matchMedia('(pointer: coarse)').matches; } catch { return false; }
+  })();
+  const noHover = (() => {
+    try { return window.matchMedia('(hover: none)').matches; } catch { return false; }
+  })();
+  const w = Math.max(screen.width || 0, screen.height || 0);
+  const h = Math.min(screen.width || 0, screen.height || 0);
+  const carLikeScreen = w >= 1100 && h >= 700;
+  const linuxChrome = /Linux/i.test(ua) && /Chrome\//i.test(ua) && !/Android/i.test(ua);
+  const zhCn = (() => {
+    const langs = [navigator.language, ...(navigator.languages || [])].filter(Boolean).map((l) => l.toLowerCase());
+    return langs.some((l) => l === 'zh-cn' || l.startsWith('zh-cn'));
+  })();
+
+  // 常见车机：Linux Chrome + 触控大屏；或中文区 + 触控大屏
+  if (linuxChrome && coarse && carLikeScreen) return true;
+  if (zhCn && coarse && noHover && carLikeScreen) return true;
+  return false;
 }
 
 function isBounceReferrer() {
@@ -92,12 +123,10 @@ function preserveProBeforeRedirect() {
 }
 
 function isBrowserFullscreenActive() {
-  if (isTeslaBrowser()) return false;
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
 
 async function exitBrowserFullscreen() {
-  if (isTeslaBrowser()) return;
   try {
     if (!isBrowserFullscreenActive()) return;
     if (document.exitFullscreen) await document.exitFullscreen();
@@ -108,7 +137,8 @@ async function exitBrowserFullscreen() {
 }
 
 async function tryBrowserFullscreen() {
-  if (isTeslaBrowser()) return false;
+  // 车机 Fullscreen API 常假成功（地址栏仍在），不要用它
+  if (isCarBrowser()) return false;
   try {
     if (isBrowserFullscreenActive()) return true;
     const candidates = [document.documentElement, document.body].filter(Boolean);
@@ -143,10 +173,11 @@ async function resumeAudioIfNeeded() {
 }
 
 /**
- * 车机触控：全屏按钮需独立绑定 touchend，document 委托在 QtWebEngine 上常失效
+ * 车机全屏只能靠外链跳板；失败时绝不改 UI（不藏 Pro / 沉浸模式）
  */
 function enterTheaterWithFallback(type) {
   preserveProBeforeRedirect();
+  clearTheaterMode();
   let navigated = false;
   window.addEventListener('pagehide', () => { navigated = true; }, { once: true });
 
@@ -155,6 +186,7 @@ function enterTheaterWithFallback(type) {
 
   window.setTimeout(() => {
     if (navigated) return;
+    clearTheaterMode();
     console.warn('[Theater] bounce redirect did not leave the page');
   }, 1400);
 }
@@ -178,18 +210,21 @@ function bindTheaterButton(btn) {
 
     const enter = async () => {
       await resumeAudioIfNeeded();
-      if (isTeslaBrowser()) {
+
+      // 车机：只走跳板，绝不用会假成功的 Fullscreen API
+      if (isCarBrowser()) {
         enterTheaterWithFallback(type);
         return;
       }
+
       if (isBrowserFullscreenActive()) {
         await exitBrowserFullscreen();
         return;
       }
-      if (await tryBrowserFullscreen()) {
-        markTheaterMode();
-        return;
-      }
+
+      // 桌面 Chrome：浏览器全屏即可，不要加 theater-mode（否则会藏掉顶栏按钮）
+      if (await tryBrowserFullscreen()) return;
+
       enterTheaterWithFallback(type);
     };
 
@@ -245,6 +280,7 @@ function isTeslaTheaterReturn() {
   return false;
 }
 
+/** 仅在跳板回流成功后使用：藏顶栏（浏览器栏已由跳板去掉） */
 function markTheaterMode() {
   document.documentElement.classList.add('theater-mode');
   try {
@@ -266,7 +302,9 @@ function clearTheaterMode() {
 }
 
 function syncTheaterChrome() {
-  if (isBrowserFullscreenActive() || isTeslaTheaterReturn()) {
+  // 只有真正从 YouTube/1905 跳板回来才藏顶栏。
+  // 绝不能根据 Fullscreen API 藏顶栏：车机会假成功，导致 Pro/沉浸模式消失而地址栏还在。
+  if (isTeslaTheaterReturn()) {
     markTheaterMode();
     return;
   }
@@ -327,6 +365,8 @@ function initTheaterModeUi() {
     sessionStorage.removeItem(THEATER_FLAG);
     sessionStorage.removeItem(THEATER_FLAG_LEGACY);
   } catch {}
+  // 清掉上次假全屏留下的 theater-mode
+  if (!isConfirmedBounceLanding()) clearTheaterMode();
   syncTheaterChrome();
   document.addEventListener('fullscreenchange', syncTheaterChrome);
   document.addEventListener('webkitfullscreenchange', syncTheaterChrome);
