@@ -55,16 +55,11 @@
   pointer-events: none;
 }
 
-/* 车机沉浸模式回退：外链跳转被拦截时隐藏顶栏/底栏 */
+/* 沉浸模式：只藏顶栏/页脚，底部控制区保持可操作 */
 html.theater-mode .aura-header,
 html.theater-mode .home-footer {
   opacity: 0 !important;
   pointer-events: none !important;
-}
-html.theater-mode .aura-horizon,
-html.theater-mode .horizon-bar {
-  opacity: 0.35;
-  pointer-events: none;
 }
 
 /* 暂时隐藏 Pro 锁定入口 · pro.js PRO_LOCKED_UI_HIDDEN=false 可恢复 */
