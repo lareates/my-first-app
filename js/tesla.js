@@ -57,6 +57,28 @@ function bindCarPlay(btn, toggleFn) {
   btn.addEventListener('click', run);
 }
 
+function isTeslaBrowser() {
+  return /Tesla|QtCarBrowser|QtWebEngine/i.test(navigator.userAgent || '');
+}
+
+function isBounceReferrer() {
+  const ref = document.referrer || '';
+  return (
+    ref.startsWith('https://www.youtube.com/') ||
+    ref.startsWith('https://youtube.com/') ||
+    ref.includes('1905.com') ||
+    ref.includes('v.qq.com')
+  );
+}
+
+function isConfirmedBounceLanding() {
+  const params = new URLSearchParams(location.search);
+  return params.get('theater') === '1' || isBounceReferrer();
+}
+
+/** 本次会话内已确认从跳板回流；刷新后需再次点击沉浸模式 */
+let theaterBounceActive = false;
+
 function buildTheaterReturnQuery() {
   const q = new URLSearchParams(location.search);
   q.set('theater', '1');
@@ -70,10 +92,12 @@ function preserveProBeforeRedirect() {
 }
 
 function isBrowserFullscreenActive() {
+  if (isTeslaBrowser()) return false;
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
 
 async function exitBrowserFullscreen() {
+  if (isTeslaBrowser()) return;
   try {
     if (!isBrowserFullscreenActive()) return;
     if (document.exitFullscreen) await document.exitFullscreen();
@@ -84,6 +108,7 @@ async function exitBrowserFullscreen() {
 }
 
 async function tryBrowserFullscreen() {
+  if (isTeslaBrowser()) return false;
   try {
     if (isBrowserFullscreenActive()) return true;
     const candidates = [document.documentElement, document.body].filter(Boolean);
@@ -128,11 +153,9 @@ function enterTheaterWithFallback(type) {
   if (type === 'cn') enterTeslaTheaterModeChina();
   else enterTeslaTheaterModeViaYouTube();
 
-  window.setTimeout(async () => {
+  window.setTimeout(() => {
     if (navigated) return;
-    const ok = await tryBrowserFullscreen();
-    if (ok) markTheaterMode({ persist: false });
-    else console.warn('[Theater] In-page immersive fallback (redirect blocked?)');
+    console.warn('[Theater] bounce redirect did not leave the page');
   }, 1400);
 }
 
@@ -155,12 +178,16 @@ function bindTheaterButton(btn) {
 
     const enter = async () => {
       await resumeAudioIfNeeded();
+      if (isTeslaBrowser()) {
+        enterTheaterWithFallback(type);
+        return;
+      }
       if (isBrowserFullscreenActive()) {
         await exitBrowserFullscreen();
         return;
       }
       if (await tryBrowserFullscreen()) {
-        markTheaterMode({ persist: false });
+        markTheaterMode();
         return;
       }
       enterTheaterWithFallback(type);
@@ -170,6 +197,7 @@ function bindTheaterButton(btn) {
   };
 
   btn.addEventListener('pointerup', run, { capture: true, passive: false });
+  btn.addEventListener('touchend', run, { capture: true, passive: false });
   btn.addEventListener('click', run, { capture: true });
 }
 
@@ -209,24 +237,15 @@ function getChinaTheaterBounceUrl() {
 }
 
 function isTeslaTheaterReturn() {
-  try {
-    if (sessionStorage.getItem(THEATER_FLAG) === '1') return true;
-  } catch {}
-  const params = new URLSearchParams(location.search);
-  if (params.get('theater') === '1') return true;
-  const ref = document.referrer || '';
-  return (
-    ref.startsWith('https://www.youtube.com/') ||
-    ref.startsWith('https://youtube.com/') ||
-    ref.includes('1905.com') ||
-    ref.includes('v.qq.com')
-  );
+  if (theaterBounceActive) return true;
+  if (isConfirmedBounceLanding()) {
+    theaterBounceActive = true;
+    return true;
+  }
+  return false;
 }
 
-function markTheaterMode({ persist = false } = {}) {
-  if (persist) {
-    try { sessionStorage.setItem(THEATER_FLAG, '1'); } catch {}
-  }
+function markTheaterMode() {
   document.documentElement.classList.add('theater-mode');
   try {
     const url = new URL(location.href);
@@ -238,6 +257,7 @@ function markTheaterMode({ persist = false } = {}) {
 }
 
 function clearTheaterMode() {
+  theaterBounceActive = false;
   try {
     sessionStorage.removeItem(THEATER_FLAG);
     sessionStorage.removeItem(THEATER_FLAG_LEGACY);
@@ -246,12 +266,8 @@ function clearTheaterMode() {
 }
 
 function syncTheaterChrome() {
-  if (isBrowserFullscreenActive()) {
-    markTheaterMode({ persist: false });
-    return;
-  }
-  if (isTeslaTheaterReturn()) {
-    markTheaterMode({ persist: true });
+  if (isBrowserFullscreenActive() || isTeslaTheaterReturn()) {
+    markTheaterMode();
     return;
   }
   clearTheaterMode();
@@ -261,13 +277,11 @@ function enterTeslaTheaterModeChina() {
   const bounce = getChinaTheaterBounceUrl();
   const redirect1905 = `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(bounce)}`;
   const finalUrl = `https://v.qq.com/search_redirect.html?url=${encodeURIComponent(redirect1905)}`;
-  try { sessionStorage.setItem(THEATER_FLAG, '1'); } catch {}
   location.href = finalUrl;
 }
 
 function enterTeslaTheaterModeViaYouTube() {
   const target = getTheaterReturnUrl();
-  try { sessionStorage.setItem(THEATER_FLAG, '1'); } catch {}
   location.href = `https://www.youtube.com/redirect?q=${encodeURIComponent(target)}`;
 }
 
@@ -309,6 +323,10 @@ function syncTheaterButtons() {
 }
 
 function initTheaterModeUi() {
+  try {
+    sessionStorage.removeItem(THEATER_FLAG);
+    sessionStorage.removeItem(THEATER_FLAG_LEGACY);
+  } catch {}
   syncTheaterChrome();
   document.addEventListener('fullscreenchange', syncTheaterChrome);
   document.addEventListener('webkitfullscreenchange', syncTheaterChrome);
