@@ -55,8 +55,7 @@
   pointer-events: none;
 }
 
-/* 沉浸模式：只藏顶栏/页脚，底部控制区保持可操作 */
-html.theater-mode .aura-header,
+/* 沉浸模式（跳板回流）：不再藏顶栏，返回 / Pro / 沉浸模式保持可见可点 */
 html.theater-mode .home-footer {
   opacity: 0 !important;
   pointer-events: none !important;

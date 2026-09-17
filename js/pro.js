@@ -33,6 +33,8 @@ const ProGate = (() => {
   let modalEl = null;
   let pendingAction = null;
   let submitting = false;
+  /** 打开弹窗后短时间内忽略关闭，避免车机同一次点击落到 backdrop 上立刻关掉 */
+  let paywallOpenedAt = 0;
 
   function restoreProState() {
     migrateLegacyPro();
@@ -319,10 +321,17 @@ const ProGate = (() => {
     setSubmitting(false);
     if (isWaitlistJoined()) showWaitlistSuccess();
     else showWaitlistForm();
+    paywallOpenedAt = Date.now();
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('focus-paywall-open');
-    if (!isWaitlistJoined()) modal.querySelector('#focus-paywall-email')?.focus();
+    // 车机触控自动 focus 会弹出键盘并打乱弹窗，仅在精细指针设备上聚焦
+    const coarse = (() => {
+      try { return window.matchMedia('(pointer: coarse)').matches; } catch { return false; }
+    })();
+    if (!isWaitlistJoined() && !coarse) {
+      modal.querySelector('#focus-paywall-email')?.focus();
+    }
     return false;
   }
 
@@ -415,20 +424,22 @@ const ProGate = (() => {
       const run = (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
         const now = Date.now();
-        if (now - last < 400) return;
-        if (e.type === 'click' && touchHandled) {
-          touchHandled = false;
+        if (now - last < 450) return;
+        if ((e.type === 'click' || e.type === 'pointerup') && touchHandled) {
+          if (e.type === 'click') touchHandled = false;
           return;
         }
         last = now;
-        if (e.type === 'touchend') touchHandled = true;
+        if (e.type === 'touchend' || e.pointerType === 'touch') touchHandled = true;
         if (isPro()) return;
         trackEvent('pro_click');
         openPaywall(t('proFeature', 'Pro'));
       };
 
       btn.addEventListener('pointerup', run, { capture: true, passive: false });
+      btn.addEventListener('touchend', run, { capture: true, passive: false });
       btn.addEventListener('click', run, { capture: true });
     });
   }
@@ -582,11 +593,19 @@ const ProGate = (() => {
     });
 
     modal?.addEventListener('click', (e) => {
+      if (Date.now() - paywallOpenedAt < 500) return;
       if (e.target.closest('[data-paywall-close]') || e.target.closest('.focus-paywall-backdrop')) {
         e.preventDefault();
         closePaywall();
       }
     });
+    modal?.addEventListener('pointerup', (e) => {
+      if (Date.now() - paywallOpenedAt < 500) return;
+      if (e.target.closest('.focus-paywall-backdrop')) {
+        e.preventDefault();
+        closePaywall();
+      }
+    }, { capture: true });
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && modalEl?.classList.contains('open')) closePaywall();
