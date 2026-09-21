@@ -15,16 +15,17 @@ const ProGate = (() => {
     '<svg class="pro-key-icon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="#f5a524" d="M14.5 3a5.5 5.5 0 0 0-5.3 6.9L2 17.1V21h3.9l1.2-1.2 1.4 1.4 2.1-2.1-1.4-1.4L11 15.3A5.5 5.5 0 1 0 14.5 3zm0 3a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg>';
 
   /** 免费声景 */
-  const FREE_SOUNDSCAPES = new Set(['woven', 'rain', 'stream']);
+  const FREE_SOUNDSCAPES = new Set(['woven', 'rain', 'stream', 'waves', 'wind']);
   /** 免费场景背景 */
   const FREE_BACKGROUNDS = new Set(['default']);
-  /** 免费时长上限（分钟）：超过此值需 Pro（即 20+） */
-  const FREE_DURATION_MAX_MIN = 15;
+  /** @deprecated 时长已全部免费，保留常量仅兼容旧调用 */
+  const FREE_DURATION_MAX_MIN = Infinity;
   /** 需 Pro 解锁的场景 */
   const PRO_SCENES = new Set(['camp']);
 
   /**
-   * 暂时隐藏 Pro 锁定入口（露营、带锁声景、壁纸切换、ASMR 调音台、加时长）
+   * 暂时隐藏 Pro 锁定入口（露营、带锁声景、壁纸切换、ASMR 调音台）
+   * 倒计时时长已全部免费，不受此开关影响。
    * 沉浸模式为免费功能，不受此开关影响。
    * 后期恢复：改为 false 即可
    */
@@ -108,9 +109,8 @@ const ProGate = (() => {
     return !FREE_BACKGROUNDS.has(id);
   }
 
-  function isDurationLocked(min) {
-    if (isPro()) return false;
-    return Number(min) > FREE_DURATION_MAX_MIN;
+  function isDurationLocked(_min) {
+    return false;
   }
 
   function isSceneLocked(sceneId) {

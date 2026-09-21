@@ -61,16 +61,12 @@ html.theater-mode .home-footer {
   pointer-events: none !important;
 }
 
-/* 暂时隐藏 Pro 锁定入口 · pro.js PRO_LOCKED_UI_HIDDEN=false 可恢复 */
+/* 暂时隐藏部分 Pro 锁定入口（时长已全部免费）· pro.js PRO_LOCKED_UI_HIDDEN=false 可全部恢复 */
 html.pro-locked-ui-hidden .scene-card[data-scene="camp"] {
   display: none !important;
 }
 html.pro-locked-ui-hidden .nap-sound-chip.pro-locked,
 html.pro-locked-ui-hidden .nap-sound-chip[data-pro-locked="1"] {
-  display: none !important;
-}
-html.pro-locked-ui-hidden .timer-sheet-option.pro-locked,
-html.pro-locked-ui-hidden .timer-sheet-option[data-pro-locked="1"] {
   display: none !important;
 }
 html.pro-locked-ui-hidden .nap-bg-btn-wrap {
@@ -560,6 +556,99 @@ body.bg-sheet-open #scene-nap .nap-soundscapes-scroll {
   background: rgba(54,38,206,0.22);
   color: var(--aura-tertiary);
   box-shadow: 0 0 24px rgba(210,187,255,0.12);
+}
+.timer-sheet-custom {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.timer-sheet-custom[hidden] {
+  display: none !important;
+}
+.timer-sheet-custom-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-family: var(--font-space);
+  font-size: max(var(--aura-min-font), 11px);
+  letter-spacing: 0.08em;
+  color: var(--aura-on-surface-variant);
+  text-align: center;
+}
+.timer-sheet-custom-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.55rem;
+}
+.timer-sheet-step {
+  flex: 0 0 3.25rem;
+  min-height: 3.25rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: var(--aura-on-surface);
+  font-size: 1.55rem;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.timer-sheet-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.timer-sheet-step:not(:disabled):active {
+  background: rgba(54,38,206,0.28);
+  border-color: rgba(210,187,255,0.35);
+}
+.timer-sheet-custom-value {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+}
+.timer-sheet-custom-num {
+  font-family: var(--font-space);
+  font-size: 1.55rem;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: var(--aura-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+.timer-sheet-custom-unit {
+  font-family: var(--font-space);
+  font-size: max(var(--aura-min-font), 12px);
+  letter-spacing: 0.06em;
+  color: var(--aura-on-surface-variant);
+}
+.timer-sheet-custom-confirm {
+  width: 100%;
+  margin-top: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(210,187,255,0.35);
+  background: rgba(54,38,206,0.28);
+  color: var(--aura-tertiary);
+  font-family: var(--font-space);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.timer-sheet-custom-hint {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-family: var(--font-space);
+  font-size: max(var(--aura-min-font), 11px);
+  letter-spacing: 0.06em;
+  color: rgba(207,196,197,0.45);
 }
 body.timer-sheet-open { overflow: hidden; }
 
