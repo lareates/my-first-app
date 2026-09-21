@@ -74,16 +74,33 @@ html, body {
   letter-spacing: 0.02em;
 }
 .lang-switch {
-  position: fixed;
-  top: max(1rem, env(safe-area-inset-top, 0px));
-  right: max(var(--home-lang-inset-right), env(safe-area-inset-right, 0px));
-  z-index: 20;
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: auto;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.25rem;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(12, 15, 15, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.home-top-actions {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top, 0px));
+  right: max(var(--home-lang-inset-right), env(safe-area-inset-right, 0px));
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: calc(100% - 2rem);
+}
+.home-top-actions .aura-theater-btn {
   background: rgba(12, 15, 15, 0.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -197,7 +214,7 @@ html, body {
   .home-brand-name { font-size: 1.3rem; }
   .home-tagline { font-size: 0.88rem; }
   .home-scenes-title { font-size: 0.85rem; margin-bottom: 0.65rem; }
-  .lang-switch {
+  .home-top-actions {
     top: max(0.75rem, env(safe-area-inset-top, 0px));
     --home-lang-inset-right: clamp(1rem, 4vw, 2.75rem);
   }

@@ -26,7 +26,7 @@
   <meta name="twitter:title" content="AeroCabin – Relax, Rest &amp; Recharge in Your Tesla">
   <meta name="twitter:description" content="AeroCabin turns your parked Tesla into a calm space for rest, guided breathing, ambient sounds and charging breaks. Runs directly in the Tesla browser.">
   <meta name="twitter:image" content="https://aerocabin.app/assets/backgrounds/garden.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2">
   <link rel="stylesheet" href="css/aura.css?v=30">
   <link rel="stylesheet" href="css/nap-scenes.css?v=4">
   <link rel="stylesheet" href="css/porsche-gauges.css">
@@ -40,10 +40,16 @@
   <!-- 首页 -->
   <section id="home" class="screen active">
     <div class="home-bg"></div>
-    <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="langGroup">
-      <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
-      <button type="button" class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
-      <button type="button" class="lang-btn" data-lang="fr" aria-pressed="false">FR</button>
+    <div class="home-top-actions">
+      <div class="aura-theater-actions">
+        <button type="button" class="aura-theater-btn" data-theater="yt" data-i18n="theaterYt">沉浸模式</button>
+        <button type="button" class="aura-theater-btn" data-theater="cn" data-i18n="theaterCn">沉浸模式</button>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="langGroup">
+        <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        <button type="button" class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
+        <button type="button" class="lang-btn" data-lang="fr" aria-pressed="false">FR</button>
+      </div>
     </div>
     <header class="home-header">
       <div class="home-brand">
