@@ -223,13 +223,18 @@ function isChinaBrowserRegion() {
   return false;
 }
 
+function resolveTheaterType() {
+  return isChinaBrowserRegion() ? 'cn' : 'yt';
+}
+
 /**
  * 用 GET form 原生提交跳转——车机 OTA 后对 JS location / 程序化 a.click 常静默拦截，
  * 但对用户触发的 form submit 仍会导航。
  */
 function syncTheaterForm(form) {
   if (!form) return;
-  const type = form.dataset.theater;
+  const type = resolveTheaterType();
+  form.dataset.theater = type;
   const input = form.querySelector('input[data-theater-param]');
   const btn = form.querySelector('.aura-theater-btn');
   form.hidden = false;
@@ -258,7 +263,7 @@ function syncTheaterForm(form) {
     btn.removeAttribute('hidden');
     btn.setAttribute('aria-hidden', 'false');
     if (typeof I18n !== 'undefined') {
-      btn.textContent = I18n.t(type === 'cn' ? 'theaterCn' : 'theaterYt');
+      btn.textContent = I18n.t('theater');
     }
   }
 }
@@ -267,7 +272,7 @@ function bindTheaterForm(form) {
   if (!form || form.dataset.theaterBound === '1') return;
   form.dataset.theaterBound = '1';
 
-  // 提交前同步刷新参数；国行改用经典完整 URL 跳转（避免错误编码导致停在 1905）
+  // 提交前同步刷新参数；国行用完整 URL 跳转（避免错误编码导致停在 1905）
   form.addEventListener('submit', (e) => {
     preserveProBeforeRedirect();
     clearTheaterMode();
@@ -283,19 +288,6 @@ function bindTheaterForm(form) {
   if (btn) {
     btn.addEventListener('pointerdown', () => syncTheaterForm(form), { passive: true });
     btn.addEventListener('touchstart', () => syncTheaterForm(form), { passive: true });
-  }
-}
-
-function reorderTheaterForms(container) {
-  if (!container) return;
-  const preferCn = isChinaBrowserRegion();
-  const yt = container.querySelector('form.aura-theater-form[data-theater="yt"]');
-  const cn = container.querySelector('form.aura-theater-form[data-theater="cn"]');
-  if (!yt || !cn) return;
-  if (preferCn && yt.compareDocumentPosition(cn) & Node.DOCUMENT_POSITION_FOLLOWING) {
-    container.insertBefore(cn, yt);
-  } else if (!preferCn && cn.compareDocumentPosition(yt) & Node.DOCUMENT_POSITION_FOLLOWING) {
-    container.insertBefore(yt, cn);
   }
 }
 
@@ -337,12 +329,8 @@ function syncTheaterChrome() {
 }
 
 function syncTheaterButtons() {
-  // 海外 + 国行两个入口都显示，避免区域误判导致「点了没反应」
-  document.querySelectorAll('.aura-theater-actions').forEach((actions) => {
-    reorderTheaterForms(actions);
-  });
-
-  document.querySelectorAll('form.aura-theater-form[data-theater]').forEach((form) => {
+  // 单一按钮：按地区自动选 YouTube / 1905 跳板
+  document.querySelectorAll('form.aura-theater-form').forEach((form) => {
     syncTheaterForm(form);
     bindTheaterForm(form);
   });
