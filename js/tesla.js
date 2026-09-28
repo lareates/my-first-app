@@ -2,19 +2,24 @@
 const APP_CANONICAL = 'https://aerocabin.app/';
 const THEATER_FLAG = 'aetheris-theater-bounce';
 const THEATER_FLAG_LEGACY = 'aetheris-theater';
-/** 国行全屏跳板：须为「无路径」根站，才能通过 1905 校验（与 s3xy.top 同理） */
-const THEATER_BOUNCE_ORIGIN = 'https://lareates.github.io';
+/**
+ * 国行全屏回流站（与 s3xy.top 同理）：
+ * 1905 用 split('/')[0] 取「主机」，故必须写成 https://域名?www.1905.com（域名后不能有 /），
+ * 这样校验串变成「域名?www.1905.com」并以 1905.com 结尾而放行。
+ */
+const THEATER_BOUNCE_ORIGIN = 'https://aerocabin.app';
 const THEATER_BOUNCE_HOSTS = new Set([
   'https://aerocabin.app',
   'https://lareates.github.io',
 ]);
 
-/** 1905 / v.qq 回流：带 ?www.1905.com&to= 时立即跳回应用 */
+/** 1905 / v.qq 回流：?www.1905.com 即进入全屏；带 to= 时再跳到指定应用路径 */
 (function handleTheaterBounce() {
   try {
     const params = new URLSearchParams(location.search);
+    if (!params.has('www.1905.com')) return;
     const to = params.get('to');
-    if (!params.has('www.1905.com') || !to) return;
+    if (!to) return;
     let target = to;
     if (to.charAt(0) === '/') target = `${location.origin}${to}`;
     else if (!/^https?:\/\//i.test(to)) target = `${location.origin}/${to.replace(/^\//, '')}`;
@@ -175,19 +180,17 @@ function getTheaterReturnUrl() {
 }
 
 function getTheaterBounceOrigin() {
-  // 1905 校验要求「无路径」根站；aerocabin.app 常被拒，统一走 github.io 根站跳板
   return THEATER_BOUNCE_ORIGIN;
 }
 
 /**
- * 国行经典跳板（博客同款格式）：
- * redirect_url = https://lareates.github.io/?www.1905.com
- * 不要附加 to= 等额外参数，否则 1905 校验失败会停在自己首页。
- * 根站旧跳板默认会转到 /my-first-app/?theater=1
+ * 国行跳板（与 s3xy.top 同款）：
+ * redirect_url = https://aerocabin.app?www.1905.com
+ * 注意：域名与 ? 之间不能有 /，否则 1905 只校验主机名并拒绝非白名单域名。
  */
 function buildChina1905RedirectUrl() {
-  // 注意：redirect_url 内层不再 encode；由表单提交时浏览器统一编码一次
-  return 'https://www.1905.com/api/redirec.html?redirect_url=https://lareates.github.io/?www.1905.com';
+  // 内层不 encode；由表单 / encodeURIComponent(整段) 统一编码
+  return 'https://www.1905.com/api/redirec.html?redirect_url=https://aerocabin.app?www.1905.com';
 }
 
 /** 完整国行触发 URL（等价于地址栏粘贴的经典写法） */
@@ -238,7 +241,7 @@ function syncTheaterForm(form) {
     form.method = 'get';
     if (input) {
       input.name = 'url';
-      // 经典格式：redirect_url=根站/?www.1905.com（不要 to=，不要预先 encode 内层）
+      // s3xy 同款：redirect_url=根站?www.1905.com（无斜杠；不要 to=）
       input.value = buildChina1905RedirectUrl();
     }
   } else {
