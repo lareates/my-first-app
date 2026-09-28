@@ -27,7 +27,7 @@
   <meta name="twitter:description" content="AeroCabin turns your parked Tesla into a calm space for rest, guided breathing, ambient sounds and charging breaks. Runs directly in the Tesla browser.">
   <meta name="twitter:image" content="https://aerocabin.app/assets/backgrounds/garden.png">
   <link rel="stylesheet" href="styles.css?v=2">
-  <link rel="stylesheet" href="css/aura.css?v=31">
+  <link rel="stylesheet" href="css/aura.css?v=32">
   <link rel="stylesheet" href="css/nap-scenes.css?v=4">
   <link rel="stylesheet" href="css/porsche-gauges.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,8 +42,14 @@
     <div class="home-bg"></div>
     <div class="home-top-actions">
       <div class="aura-theater-actions">
-        <a class="aura-theater-btn" data-theater="yt" data-i18n="theaterYt" href="https://www.youtube.com/redirect?q=https%3A%2F%2Faerocabin.app%2F%3Ftheater%3D1" rel="noreferrer">沉浸模式</a>
-        <a class="aura-theater-btn" data-theater="cn" data-i18n="theaterCn" href="https://v.qq.com/search_redirect.html?url=https%3A%2F%2Fwww.1905.com%2Fapi%2Fredirec.html%3Fredirect_url%3Dhttps%253A%252F%252Faerocabin.app%252F%253Fwww.1905.com%2526to%253Dhttps%25253A%25252F%25252Faerocabin.app%25252F%25253Ftheater%25253D1" rel="noreferrer">沉浸模式</a>
+        <form class="aura-theater-form" data-theater="yt" method="get" action="https://www.youtube.com/redirect" target="_self" accept-charset="UTF-8">
+          <input type="hidden" data-theater-param name="q" value="https://aerocabin.app/?theater=1">
+          <button type="submit" class="aura-theater-btn" data-i18n="theaterYt">沉浸模式·海外</button>
+        </form>
+        <form class="aura-theater-form" data-theater="cn" method="get" action="https://v.qq.com/search_redirect.html" target="_self" accept-charset="UTF-8">
+          <input type="hidden" data-theater-param name="url" value="https://www.1905.com/api/redirec.html?redirect_url=https%3A%2F%2Faerocabin.app%2F%3Ftheater%3D1%26www.1905.com">
+          <button type="submit" class="aura-theater-btn" data-i18n="theaterCn">沉浸模式·国行</button>
+        </form>
       </div>
       <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="langGroup">
         <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
@@ -227,8 +233,14 @@
       <div class="aura-header-right">
         <div class="aura-theater-actions">
           <button type="button" class="aura-theater-btn aura-pro-btn" data-i18n="proShortcut">✨ Pro</button>
-          <a class="aura-theater-btn" data-theater="yt" data-i18n="theaterYt" href="https://www.youtube.com/redirect?q=https%3A%2F%2Faerocabin.app%2F%3Ftheater%3D1" rel="noreferrer">沉浸模式</a>
-          <a class="aura-theater-btn" data-theater="cn" data-i18n="theaterCn" href="https://v.qq.com/search_redirect.html?url=https%3A%2F%2Fwww.1905.com%2Fapi%2Fredirec.html%3Fredirect_url%3Dhttps%253A%252F%252Faerocabin.app%252F%253Fwww.1905.com%2526to%253Dhttps%25253A%25252F%25252Faerocabin.app%25252F%25253Ftheater%25253D1" rel="noreferrer">沉浸模式</a>
+          <form class="aura-theater-form" data-theater="yt" method="get" action="https://www.youtube.com/redirect" target="_self" accept-charset="UTF-8">
+            <input type="hidden" data-theater-param name="q" value="https://aerocabin.app/?theater=1">
+            <button type="submit" class="aura-theater-btn" data-i18n="theaterYt">沉浸模式·海外</button>
+          </form>
+          <form class="aura-theater-form" data-theater="cn" method="get" action="https://v.qq.com/search_redirect.html" target="_self" accept-charset="UTF-8">
+            <input type="hidden" data-theater-param name="url" value="https://www.1905.com/api/redirec.html?redirect_url=https%3A%2F%2Faerocabin.app%2F%3Ftheater%3D1%26www.1905.com">
+            <button type="submit" class="aura-theater-btn" data-i18n="theaterCn">沉浸模式·国行</button>
+          </form>
         </div>
         <div class="nap-bg-btn-wrap">
           <button type="button" class="aura-back nap-bg-btn" id="nap-bg-btn" data-i18n-aria="swapBg" aria-label="Change background">
@@ -339,8 +351,14 @@
       <div class="aura-header-right">
         <div class="aura-theater-actions">
           <button type="button" class="aura-theater-btn aura-pro-btn" data-i18n="proShortcut">✨ Pro</button>
-          <a class="aura-theater-btn" data-theater="yt" data-i18n="theaterYt" href="https://www.youtube.com/redirect?q=https%3A%2F%2Faerocabin.app%2F%3Ftheater%3D1" rel="noreferrer">沉浸模式</a>
-          <a class="aura-theater-btn" data-theater="cn" data-i18n="theaterCn" href="https://v.qq.com/search_redirect.html?url=https%3A%2F%2Fwww.1905.com%2Fapi%2Fredirec.html%3Fredirect_url%3Dhttps%253A%252F%252Faerocabin.app%252F%253Fwww.1905.com%2526to%253Dhttps%25253A%25252F%25252Faerocabin.app%25252F%25253Ftheater%25253D1" rel="noreferrer">沉浸模式</a>
+          <form class="aura-theater-form" data-theater="yt" method="get" action="https://www.youtube.com/redirect" target="_self" accept-charset="UTF-8">
+            <input type="hidden" data-theater-param name="q" value="https://aerocabin.app/?theater=1">
+            <button type="submit" class="aura-theater-btn" data-i18n="theaterYt">沉浸模式·海外</button>
+          </form>
+          <form class="aura-theater-form" data-theater="cn" method="get" action="https://v.qq.com/search_redirect.html" target="_self" accept-charset="UTF-8">
+            <input type="hidden" data-theater-param name="url" value="https://www.1905.com/api/redirec.html?redirect_url=https%3A%2F%2Faerocabin.app%2F%3Ftheater%3D1%26www.1905.com">
+            <button type="submit" class="aura-theater-btn" data-i18n="theaterCn">沉浸模式·国行</button>
+          </form>
         </div>
         <div class="bookmark-hint-anchor" aria-hidden="true"></div>
       </div>
@@ -453,8 +471,14 @@
       <div class="aura-header-right">
         <div class="aura-theater-actions">
           <button type="button" class="aura-theater-btn aura-pro-btn" data-i18n="proShortcut">✨ Pro</button>
-          <a class="aura-theater-btn" data-theater="yt" data-i18n="theaterYt" href="https://www.youtube.com/redirect?q=https%3A%2F%2Faerocabin.app%2F%3Ftheater%3D1" rel="noreferrer">沉浸模式</a>
-          <a class="aura-theater-btn" data-theater="cn" data-i18n="theaterCn" href="https://v.qq.com/search_redirect.html?url=https%3A%2F%2Fwww.1905.com%2Fapi%2Fredirec.html%3Fredirect_url%3Dhttps%253A%252F%252Faerocabin.app%252F%253Fwww.1905.com%2526to%253Dhttps%25253A%25252F%25252Faerocabin.app%25252F%25253Ftheater%25253D1" rel="noreferrer">沉浸模式</a>
+          <form class="aura-theater-form" data-theater="yt" method="get" action="https://www.youtube.com/redirect" target="_self" accept-charset="UTF-8">
+            <input type="hidden" data-theater-param name="q" value="https://aerocabin.app/?theater=1">
+            <button type="submit" class="aura-theater-btn" data-i18n="theaterYt">沉浸模式·海外</button>
+          </form>
+          <form class="aura-theater-form" data-theater="cn" method="get" action="https://v.qq.com/search_redirect.html" target="_self" accept-charset="UTF-8">
+            <input type="hidden" data-theater-param name="url" value="https://www.1905.com/api/redirec.html?redirect_url=https%3A%2F%2Faerocabin.app%2F%3Ftheater%3D1%26www.1905.com">
+            <button type="submit" class="aura-theater-btn" data-i18n="theaterCn">沉浸模式·国行</button>
+          </form>
         </div>
         <div class="focus-theme-bar" id="focus-theme-chips" role="group" aria-label="主题切换">
           <button type="button" class="focus-theme-chip active" data-focus-theme="default" aria-pressed="true">Default</button>
@@ -694,13 +718,13 @@
 
   <script src="js/utils.js"></script>
   <script src="js/analytics.js?v=2"></script>
-  <script src="js/i18n.js?v=17"></script>
+  <script src="js/i18n.js?v=18"></script>
   <script src="js/motion.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/ambient.js"></script>
   <script src="js/pro.js?v=21"></script>
   <script src="js/timer-picker.js?v=5"></script>
-  <script src="js/tesla.js?v=13"></script>
+  <script src="js/tesla.js?v=14"></script>
   <script src="js/art.js"></script>
   <script src="js/audio.js?v=car6"></script>
   <script src="js/bookmark-hint.js?v=3"></script>

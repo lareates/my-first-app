@@ -168,8 +168,15 @@ html.pro-locked-ui-hidden #panel-oasis {
   gap: 0.45rem;
   flex-shrink: 1;
   min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
-
+.aura-theater-form {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 .aura-theater-btn {
   appearance: none;
   border: 1px solid rgba(210, 187, 255, 0.2);
@@ -181,7 +188,7 @@ html.pro-locked-ui-hidden #panel-oasis {
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
   cursor: pointer;
-  transition: border-color 0.25s, background 0.25s, color 0.25s;
+  transition: border-color 0.25s, background 0.25s, color 0.25s, transform 0.12s;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
@@ -194,6 +201,12 @@ html.pro-locked-ui-hidden #panel-oasis {
   text-decoration: none;
   -webkit-user-select: none;
   user-select: none;
+}
+.aura-theater-btn:active {
+  transform: scale(0.97);
+  border-color: rgba(210, 187, 255, 0.55);
+  background: rgba(54, 38, 206, 0.28);
+  color: #fff;
 }
 .aura-theater-actions .aura-theater-btn:not([hidden]) {
   min-width: 7.5rem;
