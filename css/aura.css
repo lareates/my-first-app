@@ -55,9 +55,14 @@
   pointer-events: none;
 }
 
-/* 沉浸模式（跳板回流）：不再藏顶栏，返回 / Pro / 沉浸模式保持可见可点 */
+/* 沉浸模式（跳板回流）：藏首页底栏；沉浸入口仅留在首页 */
 html.theater-mode .home-footer {
   opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* 非当前页时强制藏首页顶栏（部分车机 WebView 对 fixed + display:none 父级处理不干净） */
+#home:not(.active) .home-top-actions {
+  visibility: hidden !important;
   pointer-events: none !important;
 }
 
