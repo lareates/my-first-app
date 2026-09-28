@@ -175,20 +175,29 @@ function getTheaterReturnUrl() {
 }
 
 function getTheaterBounceOrigin() {
-  if (THEATER_BOUNCE_HOSTS.has(location.origin)) return location.origin;
+  // 1905 校验要求「无路径」根站；aerocabin.app 常被拒，统一走 github.io 根站跳板
   return THEATER_BOUNCE_ORIGIN;
 }
 
 /**
- * 国行 1905 跳转目标：URL 字符串中必须出现 www.1905.com 才能过校验。
- * 直接回到应用（带 theater=1），不再套一层自定义 bounce。
+ * 国行全屏回流地址：必须是 github.io 镜像。
+ * 线上根站跳板仍是旧版，只支持相对路径 to=/...
+ * 若回流到 aerocabin.app，1905 常直接拒掉并停在 1905 首页。
  */
+function getChinaTheaterReturnUrl() {
+  return `https://lareates.github.io/my-first-app/?${buildTheaterReturnQuery()}`;
+}
+
+/**
+ * 国行：v.qq → 1905 → github.io/?www.1905.com&to=/my-first-app/?theater=1
+ */
+function getChinaTheaterBounceUrl() {
+  const relativeTo = `/my-first-app/?${buildTheaterReturnQuery()}`;
+  return `${getTheaterBounceOrigin()}/?www.1905.com&to=${encodeURIComponent(relativeTo)}`;
+}
+
 function buildChina1905RedirectUrl() {
-  const ret = getTheaterReturnUrl();
-  const flagged = ret.includes('www.1905.com')
-    ? ret
-    : `${ret}${ret.includes('?') ? '&' : '?'}www.1905.com`;
-  return `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(flagged)}`;
+  return `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(getChinaTheaterBounceUrl())}`;
 }
 
 function isChinaBrowserRegion() {

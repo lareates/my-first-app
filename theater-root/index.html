@@ -2,13 +2,6 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <script>
-  (function () {
-    if (location.protocol === 'http:' && location.hostname === 'aerocabin.app') {
-      location.replace('https://' + location.host + location.pathname + location.search + location.hash);
-    }
-  })();
-  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AeroCabin · 全屏跳板</title>
   <style>
@@ -29,7 +22,6 @@
   <script>
     (function () {
       // 发布到 https://lareates.github.io/ 根站后，作为 1905 回流跳板
-      // 目标应用：https://lareates.github.io/my-first-app/
       var APP = 'https://aerocabin.app/?theater=1';
       try {
         var params = new URLSearchParams(location.search);

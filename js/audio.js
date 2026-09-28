@@ -838,7 +838,8 @@ const AudioEngine = (() => {
 
   function noiseBufferPinkBrown(type = 'pink', seconds = 4) {
     const c = ensureCtx();
-    const buf = c.createBuffer(2, c.sampleRate * seconds, c.sampleRate);
+    const secs = LOW_POWER ? Math.min(seconds, 1.2) : seconds;
+    const buf = c.createBuffer(2, Math.floor(c.sampleRate * secs), c.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
       const d = buf.getChannelData(ch);
       let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
@@ -860,6 +861,18 @@ const AudioEngine = (() => {
       }
     }
     return buf;
+  }
+
+  async function resumeAudioContext(timeoutMs = 1200) {
+    const c = ensureCtx();
+    if (c.state === 'running') return true;
+    try {
+      await Promise.race([
+        c.resume().then(() => true),
+        new Promise((resolve) => setTimeout(() => resolve(false), timeoutMs)),
+      ]);
+    } catch { /* ignore */ }
+    return c.state === 'running';
   }
 
   function wovenTrack(node) {
@@ -942,6 +955,34 @@ const AudioEngine = (() => {
   }
 
   function buildWovenRelax() {
+    // 车机：精简节点，避免噪声缓冲 + 大量振荡器拖垮/无声
+    if (LOW_POWER) {
+      const chord = [174.61, 220, 261.63];
+      chord.forEach((f, i) => {
+        const { osc, g } = wovenStartOsc({ freq: f, type: 'sine', gain: 0.028 - i * 0.004, wet: i > 0 });
+        wovenSlowLfo(0.04 + i * 0.01, f * 0.002, osc.detune);
+        wovenSlowLfo(0.03 + i * 0.008, 0.008, g.gain, 0.028 - i * 0.004);
+      });
+      const airSrc = ctx.createBufferSource();
+      airSrc.buffer = noiseBufferPinkBrown('pink', 1.2);
+      airSrc.loop = true;
+      const airF = ctx.createBiquadFilter();
+      airF.type = 'lowpass';
+      airF.frequency.value = 720;
+      const airG = ctx.createGain();
+      airG.gain.value = 0.055;
+      airSrc.connect(airF);
+      airF.connect(airG);
+      airG.connect(woven.dry);
+      airSrc.start();
+      wovenTrack(airSrc);
+      woven.mod = () => {
+        const t = ctx.currentTime;
+        airG.gain.setTargetAtTime(0.04 + breathPhase * 0.02, t, 0.6);
+      };
+      return;
+    }
+
     const chord = [146.83, 174.61, 220, 261.63, 329.63];
     chord.forEach((f, i) => {
       const { osc, g } = wovenStartOsc({ freq: f, type: 'sine', gain: 0.016 - i * 0.002, wet: i > 2 });
@@ -996,6 +1037,25 @@ const AudioEngine = (() => {
   }
 
   function buildWovenSleep() {
+    if (LOW_POWER) {
+      const bedSrc = ctx.createBufferSource();
+      bedSrc.buffer = noiseBufferPinkBrown('brown', 1.2);
+      bedSrc.loop = true;
+      const bedF = ctx.createBiquadFilter();
+      bedF.type = 'lowpass';
+      bedF.frequency.value = 160;
+      const bedG = ctx.createGain();
+      bedG.gain.value = 0.09;
+      bedSrc.connect(bedF);
+      bedF.connect(bedG);
+      bedG.connect(woven.dry);
+      bedSrc.start();
+      wovenTrack(bedSrc);
+      wovenStartOsc({ freq: 55, type: 'sine', gain: 0.02, wet: true });
+      woven.mod = () => {};
+      return;
+    }
+
     const bedPan = wovenMovingPan(0.012);
     const bedSrc = ctx.createBufferSource();
     bedSrc.buffer = noiseBufferPinkBrown('brown', 8);
@@ -1035,6 +1095,41 @@ const AudioEngine = (() => {
   }
 
   function buildWovenBreath() {
+    if (LOW_POWER) {
+      woven.breathGains = [];
+      [130.81, 164.81, 196].forEach((f, i) => {
+        const { g } = wovenStartOsc({ freq: f, type: 'sine', gain: 0.018, wet: true });
+        woven.breathGains.push(g);
+      });
+      const whooshSrc = ctx.createBufferSource();
+      whooshSrc.buffer = noiseBufferPinkBrown('pink', 1.2);
+      whooshSrc.loop = true;
+      const whooshF = ctx.createBiquadFilter();
+      whooshF.type = 'bandpass';
+      whooshF.frequency.value = 520;
+      const whooshG = ctx.createGain();
+      whooshG.gain.value = 0.02;
+      whooshSrc.connect(whooshF);
+      whooshF.connect(whooshG);
+      whooshG.connect(woven.dry);
+      whooshSrc.start();
+      wovenTrack(whooshSrc);
+      woven.whooshG = whooshG;
+      woven.whooshF = whooshF;
+      woven.mod = () => {
+        const t = ctx.currentTime;
+        const ph = breathPhase;
+        const breathe = 0.5 - 0.5 * Math.cos(ph * Math.PI * 2);
+        (woven.breathGains || []).forEach((g, i) => {
+          g.gain.setTargetAtTime(0.01 + breathe * (0.02 - i * 0.003), t, 0.35);
+        });
+        if (woven.whooshG) {
+          woven.whooshG.gain.setTargetAtTime(0.01 + breathe * 0.035, t, 0.35);
+        }
+      };
+      return;
+    }
+
     const root = [110, 130.81, 164.81, 196];
     woven.breathGains = [];
     root.forEach((f, i) => {
@@ -1138,7 +1233,7 @@ const AudioEngine = (() => {
     woven.dry.connect(woven.bus);
 
     woven.wet = ctx.createGain();
-    woven.wet.gain.value = 0.32;
+    woven.wet.gain.value = LOW_POWER ? 0.18 : 0.32;
     woven.wet.connect(reverb);
 
     if (mode === 'sleep') buildWovenSleep();
@@ -1152,9 +1247,11 @@ const AudioEngine = (() => {
     if (woven.mod) {
       woven.modId = setInterval(() => {
         if (woven.bus && woven.mod) woven.mod();
-      }, 90);
+      }, LOW_POWER ? 160 : 90);
     }
     claimMediaSession(`AeroCabin · ${mode}`);
+    // 车机上 await 之后 context 常仍 suspended，再踢一次
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
   }
 
   function setWovenVolume(volume) {
@@ -1181,19 +1278,39 @@ const AudioEngine = (() => {
     napPreset = sc;
     napMode = mode;
     napVolume = volume / 100;
-    const fadeOut = quickSwitch ? MODE_SWITCH_FADE_OUT : FADE_OUT_SEC;
+    // 车机：织境依赖 Oscillator，长淡出后再启动常已丢掉 AudioContext 运行态 → 无声
+    const fadeOut = quickSwitch
+      ? MODE_SWITCH_FADE_OUT
+      : (LOW_POWER && sc === 'woven' ? 0.2 : FADE_OUT_SEC);
     const fadeIn = quickSwitch ? MODE_SWITCH_FADE_IN : FADE_IN_SEC;
 
-    if (ctx && ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
+    // 尽量在调用栈前段触发 resume（仍可能在用户手势内）
+    resumeAudioContext(400).catch(() => {});
 
     napSwitchChain = napSwitchChain
       .catch(() => {})
       .then(async () => {
         await stopNapLayers(fadeOut);
+        const running = await resumeAudioContext(LOW_POWER ? 2000 : 1200);
         if (sc === 'woven') {
-          startWoven(mode, napVolume, fadeIn);
+          try {
+            startWoven(mode, napVolume, fadeIn);
+            if (!running && ctx?.state === 'suspended') {
+              await resumeAudioContext(1500);
+            }
+            // 若仍无法跑 WebAudio，回退到轻量采样，避免「织境完全无声」
+            if (ctx && ctx.state !== 'running' && LOW_POWER) {
+              console.warn('[Audio] woven context not running, fallback to stream');
+              stopWovenImmediate();
+              await napPlayer.start('stream', napVolume, { fadeIn });
+              napPreset = 'stream';
+            }
+          } catch (err) {
+            console.warn('[Audio] woven failed, fallback to stream', err);
+            stopWovenImmediate();
+            await napPlayer.start('stream', napVolume, { fadeIn });
+            napPreset = 'stream';
+          }
         } else {
           await napPlayer.start(sc, napVolume, { fadeIn });
         }
