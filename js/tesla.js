@@ -81,6 +81,7 @@ function isCarBrowser() {
   const h = Math.min(screen.width || 0, screen.height || 0);
   const carLikeScreen = w >= 1100 && h >= 700;
   const linuxChrome = /Linux/i.test(ua) && /Chrome\//i.test(ua) && !/Android/i.test(ua);
+  const chromiumLike = /Chrome\//i.test(ua) || /CriOS\//i.test(ua);
   const zhCn = (() => {
     const langs = [navigator.language, ...(navigator.languages || [])].filter(Boolean).map((l) => l.toLowerCase());
     return langs.some((l) => l === 'zh-cn' || l.startsWith('zh-cn'));
@@ -89,7 +90,44 @@ function isCarBrowser() {
   // 常见车机：Linux Chrome + 触控大屏；或中文区 + 触控大屏
   if (linuxChrome && coarse && carLikeScreen) return true;
   if (zhCn && coarse && noHover && carLikeScreen) return true;
+  // OTA 后 UA 可能变化：大屏触控 + Chromium 仍按车机处理
+  if (coarse && noHover && carLikeScreen && chromiumLike && !/Android|iPhone|iPad/i.test(ua)) return true;
   return false;
+}
+
+/**
+ * 是否必须走 YouTube/1905 跳板。
+ * 比 isCarBrowser 更宽：触控大屏绝不信任 Fullscreen API（常假成功、看起来像没反应）。
+ */
+function shouldUseTheaterBounce() {
+  if (isCarBrowser()) return true;
+  try {
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    const noHover = window.matchMedia('(hover: none)').matches;
+    const w = Math.max(screen.width || 0, screen.height || 0);
+    const h = Math.min(screen.width || 0, screen.height || 0);
+    if (coarse && noHover && w >= 1000 && h >= 600) return true;
+  } catch { /* ignore */ }
+  return false;
+}
+
+/** 顶层同步跳转（必须在用户手势回调里同步调用；await 之后会被车机静默拦截） */
+function navigateTopLevel(url) {
+  if (!url) return;
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.rel = 'noreferrer';
+    a.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch { /* ignore */ }
+  try {
+    window.location.assign(url);
+  } catch {
+    window.location.href = url;
+  }
 }
 
 function isBounceReferrer() {
@@ -136,37 +174,38 @@ async function exitBrowserFullscreen() {
   }
 }
 
-async function tryBrowserFullscreen() {
-  // 车机 Fullscreen API 常假成功（地址栏仍在），不要用它
-  if (isCarBrowser()) return false;
+/** 在用户手势内同步发起全屏（不 await，避免丢掉 activation） */
+function tryBrowserFullscreenSync() {
+  if (shouldUseTheaterBounce()) return false;
   try {
     if (isBrowserFullscreenActive()) return true;
-    const candidates = [document.documentElement, document.body].filter(Boolean);
-    for (const el of candidates) {
-      try {
-        if (el.requestFullscreen) {
-          await el.requestFullscreen({ navigationUI: 'hide' });
-          if (isBrowserFullscreenActive()) return true;
-        }
-      } catch { /* try next */ }
-      try {
-        if (el.webkitRequestFullscreen) {
-          el.webkitRequestFullscreen();
-          if (isBrowserFullscreenActive()) return true;
-        }
-      } catch { /* try next */ }
+    const el = document.documentElement || document.body;
+    if (!el) return false;
+    if (el.requestFullscreen) {
+      el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+      return true;
+    }
+    if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+      return isBrowserFullscreenActive();
     }
   } catch (e) {
     console.warn('[Theater] Fullscreen API unavailable', e);
   }
-  return isBrowserFullscreenActive();
+  return false;
 }
 
-async function resumeAudioIfNeeded() {
+function resumeAudioIfNeeded() {
   try {
     if (typeof AudioEngine === 'undefined') return;
-    const ctx = await AudioEngine.resume();
-    if (ctx && ctx.state === 'suspended') await ctx.resume();
+    const p = AudioEngine.resume();
+    if (p && typeof p.then === 'function') {
+      p.then((ctx) => {
+        if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+      }).catch((e) => {
+        console.warn('[Theater] Audio resume skipped', e);
+      });
+    }
   } catch (e) {
     console.warn('[Theater] Audio resume skipped', e);
   }
@@ -174,12 +213,14 @@ async function resumeAudioIfNeeded() {
 
 /**
  * 车机全屏只能靠外链跳板；失败时绝不改 UI（不藏 Pro / 沉浸模式）
+ * 必须在用户手势同步路径调用。
  */
 function enterTheaterWithFallback(type) {
   preserveProBeforeRedirect();
   clearTheaterMode();
   let navigated = false;
   window.addEventListener('pagehide', () => { navigated = true; }, { once: true });
+  window.addEventListener('blur', () => { navigated = true; }, { once: true });
 
   if (type === 'cn') enterTeslaTheaterModeChina();
   else enterTeslaTheaterModeViaYouTube();
@@ -188,7 +229,7 @@ function enterTheaterWithFallback(type) {
     if (navigated) return;
     clearTheaterMode();
     console.warn('[Theater] bounce redirect did not leave the page');
-  }, 1400);
+  }, 1600);
 }
 
 function bindTheaterButton(btn) {
@@ -199,7 +240,8 @@ function bindTheaterButton(btn) {
 
   const run = (e) => {
     if (btn.hidden) return;
-    e.preventDefault();
+    // 不要 preventDefault 掉 click 的默认行为链之外的导航；仅阻断冒泡
+    if (e.cancelable) e.preventDefault();
     e.stopPropagation();
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
     const now = Date.now();
@@ -208,27 +250,24 @@ function bindTheaterButton(btn) {
 
     const type = btn.dataset.theater;
 
-    const enter = async () => {
-      await resumeAudioIfNeeded();
+    // 音频恢复绝不阻塞跳转（OTA 后 await 会丢掉用户手势，location 被静默拦截 → 看起来「没反应」）
+    resumeAudioIfNeeded();
 
-      // 车机：只走跳板，绝不用会假成功的 Fullscreen API
-      if (isCarBrowser()) {
-        enterTheaterWithFallback(type);
-        return;
-      }
-
-      if (isBrowserFullscreenActive()) {
-        await exitBrowserFullscreen();
-        return;
-      }
-
-      // 桌面 Chrome：浏览器全屏即可，不要加 theater-mode（否则会藏掉顶栏按钮）
-      if (await tryBrowserFullscreen()) return;
-
+    // 车机 / 触控大屏：同步走跳板
+    if (shouldUseTheaterBounce()) {
       enterTheaterWithFallback(type);
-    };
+      return;
+    }
 
-    resumeAudioIfNeeded().finally(enter);
+    if (isBrowserFullscreenActive()) {
+      exitBrowserFullscreen();
+      return;
+    }
+
+    // 桌面：手势内同步请求全屏；失败再跳板
+    if (tryBrowserFullscreenSync()) return;
+
+    enterTheaterWithFallback(type);
   };
 
   btn.addEventListener('pointerup', run, { capture: true, passive: false });
@@ -315,12 +354,12 @@ function enterTeslaTheaterModeChina() {
   const bounce = getChinaTheaterBounceUrl();
   const redirect1905 = `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(bounce)}`;
   const finalUrl = `https://v.qq.com/search_redirect.html?url=${encodeURIComponent(redirect1905)}`;
-  location.href = finalUrl;
+  navigateTopLevel(finalUrl);
 }
 
 function enterTeslaTheaterModeViaYouTube() {
   const target = getTheaterReturnUrl();
-  location.href = `https://www.youtube.com/redirect?q=${encodeURIComponent(target)}`;
+  navigateTopLevel(`https://www.youtube.com/redirect?q=${encodeURIComponent(target)}`);
 }
 
 function isChinaBrowserRegion() {
