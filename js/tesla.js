@@ -115,18 +115,9 @@ function shouldUseTheaterBounce() {
 function navigateTopLevel(url) {
   if (!url) return;
   try {
-    const a = document.createElement('a');
-    a.href = url;
-    a.rel = 'noreferrer';
-    a.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } catch { /* ignore */ }
-  try {
-    window.location.assign(url);
-  } catch {
     window.location.href = url;
+  } catch {
+    try { window.location.assign(url); } catch { /* ignore */ }
   }
 }
 
@@ -174,27 +165,6 @@ async function exitBrowserFullscreen() {
   }
 }
 
-/** 在用户手势内同步发起全屏（不 await，避免丢掉 activation） */
-function tryBrowserFullscreenSync() {
-  if (shouldUseTheaterBounce()) return false;
-  try {
-    if (isBrowserFullscreenActive()) return true;
-    const el = document.documentElement || document.body;
-    if (!el) return false;
-    if (el.requestFullscreen) {
-      el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
-      return true;
-    }
-    if (el.webkitRequestFullscreen) {
-      el.webkitRequestFullscreen();
-      return isBrowserFullscreenActive();
-    }
-  } catch (e) {
-    console.warn('[Theater] Fullscreen API unavailable', e);
-  }
-  return false;
-}
-
 function resumeAudioIfNeeded() {
   try {
     if (typeof AudioEngine === 'undefined') return;
@@ -209,70 +179,6 @@ function resumeAudioIfNeeded() {
   } catch (e) {
     console.warn('[Theater] Audio resume skipped', e);
   }
-}
-
-/**
- * 车机全屏只能靠外链跳板；失败时绝不改 UI（不藏 Pro / 沉浸模式）
- * 必须在用户手势同步路径调用。
- */
-function enterTheaterWithFallback(type) {
-  preserveProBeforeRedirect();
-  clearTheaterMode();
-  let navigated = false;
-  window.addEventListener('pagehide', () => { navigated = true; }, { once: true });
-  window.addEventListener('blur', () => { navigated = true; }, { once: true });
-
-  if (type === 'cn') enterTeslaTheaterModeChina();
-  else enterTeslaTheaterModeViaYouTube();
-
-  window.setTimeout(() => {
-    if (navigated) return;
-    clearTheaterMode();
-    console.warn('[Theater] bounce redirect did not leave the page');
-  }, 1600);
-}
-
-function bindTheaterButton(btn) {
-  if (!btn || btn.dataset.theaterBound === '1') return;
-  btn.dataset.theaterBound = '1';
-
-  let last = 0;
-
-  const run = (e) => {
-    if (btn.hidden) return;
-    // 不要 preventDefault 掉 click 的默认行为链之外的导航；仅阻断冒泡
-    if (e.cancelable) e.preventDefault();
-    e.stopPropagation();
-    if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-    const now = Date.now();
-    if (now - last < 450) return;
-    last = now;
-
-    const type = btn.dataset.theater;
-
-    // 音频恢复绝不阻塞跳转（OTA 后 await 会丢掉用户手势，location 被静默拦截 → 看起来「没反应」）
-    resumeAudioIfNeeded();
-
-    // 车机 / 触控大屏：同步走跳板
-    if (shouldUseTheaterBounce()) {
-      enterTheaterWithFallback(type);
-      return;
-    }
-
-    if (isBrowserFullscreenActive()) {
-      exitBrowserFullscreen();
-      return;
-    }
-
-    // 桌面：手势内同步请求全屏；失败再跳板
-    if (tryBrowserFullscreenSync()) return;
-
-    enterTheaterWithFallback(type);
-  };
-
-  btn.addEventListener('pointerup', run, { capture: true, passive: false });
-  btn.addEventListener('touchend', run, { capture: true, passive: false });
-  btn.addEventListener('click', run, { capture: true });
 }
 
 function getAppUrl() {
@@ -308,6 +214,76 @@ function getChinaTheaterBounceUrl() {
   const returnUrl = getTheaterReturnUrl();
   const to = encodeURIComponent(returnUrl);
   return `${getTheaterBounceOrigin()}?www.1905.com&to=${to}`;
+}
+
+/** 沉浸模式最终跳转 URL（始终走跳板，不信任 Fullscreen API） */
+function getTheaterLaunchUrl(type) {
+  if (type === 'cn') {
+    const bounce = getChinaTheaterBounceUrl();
+    const redirect1905 = `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(bounce)}`;
+    return `https://v.qq.com/search_redirect.html?url=${encodeURIComponent(redirect1905)}`;
+  }
+  return `https://www.youtube.com/redirect?q=${encodeURIComponent(getTheaterReturnUrl())}`;
+}
+
+function enterTeslaTheaterModeChina() {
+  navigateTopLevel(getTheaterLaunchUrl('cn'));
+}
+
+function enterTeslaTheaterModeViaYouTube() {
+  navigateTopLevel(getTheaterLaunchUrl('yt'));
+}
+
+/**
+ * 车机全屏只能靠外链跳板；失败时绝不改 UI（不藏 Pro / 沉浸模式）
+ * 必须在用户手势同步路径调用。
+ */
+function enterTheaterWithFallback(type) {
+  preserveProBeforeRedirect();
+  clearTheaterMode();
+  if (type === 'cn') enterTeslaTheaterModeChina();
+  else enterTeslaTheaterModeViaYouTube();
+}
+
+/**
+ * 沉浸模式入口：用真实 <a href> 原生导航。
+ * OTA 后 JS location / 带 preventDefault 的 touch 处理常被静默拦截；
+ * 原生链接点击是目前车机上最稳的方式。
+ */
+function bindTheaterButton(btn) {
+  if (!btn || btn.dataset.theaterBound === '1') return;
+  btn.dataset.theaterBound = '1';
+
+  const refreshHref = () => {
+    const url = getTheaterLaunchUrl(btn.dataset.theater);
+    if (btn.tagName === 'A') {
+      btn.setAttribute('href', url);
+      btn.setAttribute('rel', 'noreferrer');
+    }
+    return url;
+  };
+
+  const prepare = () => {
+    if (btn.hidden) return null;
+    preserveProBeforeRedirect();
+    clearTheaterMode();
+    resumeAudioIfNeeded();
+    return refreshHref();
+  };
+
+  // 在按下阶段就写好 href，确保抬手导航时属性已就绪
+  btn.addEventListener('pointerdown', prepare, { capture: true });
+  btn.addEventListener('touchstart', prepare, { capture: true, passive: true });
+
+  btn.addEventListener('click', (e) => {
+    if (btn.hidden) {
+      e.preventDefault();
+      return;
+    }
+    const url = prepare() || getTheaterLaunchUrl(btn.dataset.theater);
+    // 不 preventDefault：保留 <a> 原生跳转；同时同步写 location 作双保险
+    try { window.location.href = url; } catch { /* ignore */ }
+  }, { capture: true });
 }
 
 function isTeslaTheaterReturn() {
@@ -350,18 +326,6 @@ function syncTheaterChrome() {
   clearTheaterMode();
 }
 
-function enterTeslaTheaterModeChina() {
-  const bounce = getChinaTheaterBounceUrl();
-  const redirect1905 = `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(bounce)}`;
-  const finalUrl = `https://v.qq.com/search_redirect.html?url=${encodeURIComponent(redirect1905)}`;
-  navigateTopLevel(finalUrl);
-}
-
-function enterTeslaTheaterModeViaYouTube() {
-  const target = getTheaterReturnUrl();
-  navigateTopLevel(`https://www.youtube.com/redirect?q=${encodeURIComponent(target)}`);
-}
-
 function isChinaBrowserRegion() {
   try {
     const override = localStorage.getItem('aetheris-theater-region');
@@ -391,6 +355,14 @@ function syncTheaterButtons() {
     if (typeof I18n !== 'undefined') {
       btn.textContent = I18n.t(useCn ? 'theaterCn' : 'theaterYt');
     }
+    const url = getTheaterLaunchUrl(type);
+    if (btn.tagName === 'A') {
+      btn.setAttribute('href', url);
+      btn.setAttribute('rel', 'noreferrer');
+    }
+    // 隐藏的链接去掉焦点，避免误触
+    if (show) btn.removeAttribute('tabindex');
+    else btn.setAttribute('tabindex', '-1');
     bindTheaterButton(btn);
   });
   if (typeof ProGate !== 'undefined') {

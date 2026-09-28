@@ -191,6 +191,9 @@ html.pro-locked-ui-hidden #panel-oasis {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  text-decoration: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .aura-theater-actions .aura-theater-btn:not([hidden]) {
   min-width: 7.5rem;
