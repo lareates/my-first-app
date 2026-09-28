@@ -180,24 +180,19 @@ function getTheaterBounceOrigin() {
 }
 
 /**
- * 国行全屏回流地址：必须是 github.io 镜像。
- * 线上根站跳板仍是旧版，只支持相对路径 to=/...
- * 若回流到 aerocabin.app，1905 常直接拒掉并停在 1905 首页。
+ * 国行经典跳板（博客同款格式）：
+ * redirect_url = https://lareates.github.io/?www.1905.com
+ * 不要附加 to= 等额外参数，否则 1905 校验失败会停在自己首页。
+ * 根站旧跳板默认会转到 /my-first-app/?theater=1
  */
-function getChinaTheaterReturnUrl() {
-  return `https://lareates.github.io/my-first-app/?${buildTheaterReturnQuery()}`;
-}
-
-/**
- * 国行：v.qq → 1905 → github.io/?www.1905.com&to=/my-first-app/?theater=1
- */
-function getChinaTheaterBounceUrl() {
-  const relativeTo = `/my-first-app/?${buildTheaterReturnQuery()}`;
-  return `${getTheaterBounceOrigin()}/?www.1905.com&to=${encodeURIComponent(relativeTo)}`;
-}
-
 function buildChina1905RedirectUrl() {
-  return `https://www.1905.com/api/redirec.html?redirect_url=${encodeURIComponent(getChinaTheaterBounceUrl())}`;
+  // 注意：redirect_url 内层不再 encode；由表单提交时浏览器统一编码一次
+  return 'https://www.1905.com/api/redirec.html?redirect_url=https://lareates.github.io/?www.1905.com';
+}
+
+/** 完整国行触发 URL（等价于地址栏粘贴的经典写法） */
+function getChinaTheaterLaunchHref() {
+  return 'https://v.qq.com/search_redirect.html?url=' + encodeURIComponent(buildChina1905RedirectUrl());
 }
 
 function isChinaBrowserRegion() {
@@ -243,6 +238,7 @@ function syncTheaterForm(form) {
     form.method = 'get';
     if (input) {
       input.name = 'url';
+      // 经典格式：redirect_url=根站/?www.1905.com（不要 to=，不要预先 encode 内层）
       input.value = buildChina1905RedirectUrl();
     }
   } else {
@@ -268,15 +264,18 @@ function bindTheaterForm(form) {
   if (!form || form.dataset.theaterBound === '1') return;
   form.dataset.theaterBound = '1';
 
-  // 提交前同步刷新参数；绝不 preventDefault
-  form.addEventListener('submit', () => {
+  // 提交前同步刷新参数；国行改用经典完整 URL 跳转（避免错误编码导致停在 1905）
+  form.addEventListener('submit', (e) => {
     preserveProBeforeRedirect();
     clearTheaterMode();
     resumeAudioIfNeeded();
     syncTheaterForm(form);
+    if (form.dataset.theater === 'cn') {
+      e.preventDefault();
+      window.location.href = getChinaTheaterLaunchHref();
+    }
   });
 
-  // 按下时也刷新一次，避免旧 value
   const btn = form.querySelector('.aura-theater-btn');
   if (btn) {
     btn.addEventListener('pointerdown', () => syncTheaterForm(form), { passive: true });

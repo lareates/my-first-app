@@ -171,6 +171,71 @@ const AudioEngine = (() => {
     } catch { /* ignore */ }
   }
 
+  /**
+   * 车机媒体焦点看守：织境只有 Oscillator 时，几秒后系统音乐会抢焦点。
+   * 用近乎无声的 HTMLAudio 循环占住焦点（采样声景本身已有 MediaElement，无需此物）。
+   */
+  const mediaFocus = {
+    el: null,
+    source: null,
+    gain: null,
+    timer: null,
+    title: 'AeroCabin',
+  };
+
+  function startMediaFocusKeeper(title = 'AeroCabin') {
+    if (!LOW_POWER) return;
+    ensureCtx();
+    mediaFocus.title = title;
+    try {
+      if (!mediaFocus.el) {
+        mediaFocus.el = new Audio('assets/audio/rain.mp3');
+        mediaFocus.el.preload = 'auto';
+        mediaFocus.el.loop = true;
+        mediaFocus.el.playsInline = true;
+        mediaFocus.el.setAttribute('playsinline', '');
+        mediaFocus.gain = ctx.createGain();
+        // 可听增益约 0，但元素仍在 playing，足以锁住车机媒体焦点
+        mediaFocus.gain.gain.value = 0.00001;
+        mediaFocus.source = ctx.createMediaElementSource(mediaFocus.el);
+        mediaFocus.source.connect(mediaFocus.gain);
+        mediaFocus.gain.connect(master);
+      }
+      const playP = mediaFocus.el.play();
+      if (playP && typeof playP.catch === 'function') playP.catch(() => {});
+      claimMediaSession(title);
+      try {
+        const keep = () => {
+          mediaFocus.el?.play?.().catch(() => {});
+          if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
+          claimMediaSession(mediaFocus.title);
+        };
+        navigator.mediaSession.setActionHandler('pause', keep);
+        navigator.mediaSession.setActionHandler('play', keep);
+        navigator.mediaSession.setActionHandler('stop', keep);
+      } catch { /* ignore */ }
+      if (mediaFocus.timer) clearInterval(mediaFocus.timer);
+      mediaFocus.timer = setInterval(() => {
+        if (!woven.bus) return;
+        try {
+          if (mediaFocus.el.paused) mediaFocus.el.play().catch(() => {});
+          if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
+          claimMediaSession(mediaFocus.title);
+        } catch { /* ignore */ }
+      }, 1800);
+    } catch (e) {
+      console.warn('[Audio] media focus keeper failed', e);
+    }
+  }
+
+  function stopMediaFocusKeeper() {
+    if (mediaFocus.timer) {
+      clearInterval(mediaFocus.timer);
+      mediaFocus.timer = null;
+    }
+    try { mediaFocus.el?.pause?.(); } catch { /* ignore */ }
+  }
+
   function buildImpulse(c, duration, decay) {
     const len = c.sampleRate * duration;
     const buf = c.createBuffer(2, len, c.sampleRate);
@@ -1170,6 +1235,7 @@ const AudioEngine = (() => {
   }
 
   function stopWovenImmediate() {
+    stopMediaFocusKeeper();
     if (woven.modId) {
       clearInterval(woven.modId);
       woven.modId = null;
@@ -1250,6 +1316,7 @@ const AudioEngine = (() => {
       }, LOW_POWER ? 160 : 90);
     }
     claimMediaSession(`AeroCabin · ${mode}`);
+    startMediaFocusKeeper(`AeroCabin · ${mode}`);
     // 车机上 await 之后 context 常仍 suspended，再踢一次
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
   }
@@ -1284,6 +1351,11 @@ const AudioEngine = (() => {
       : (LOW_POWER && sc === 'woven' ? 0.2 : FADE_OUT_SEC);
     const fadeIn = quickSwitch ? MODE_SWITCH_FADE_IN : FADE_IN_SEC;
 
+    // 织境：在用户手势同步栈内先占住 HTMLAudio 焦点（否则几秒后被系统音乐抢走）
+    if (sc === 'woven') {
+      startMediaFocusKeeper(`AeroCabin · ${mode}`);
+    }
+
     // 尽量在调用栈前段触发 resume（仍可能在用户手势内）
     resumeAudioContext(400).catch(() => {});
 
@@ -1291,6 +1363,8 @@ const AudioEngine = (() => {
       .catch(() => {})
       .then(async () => {
         await stopNapLayers(fadeOut);
+        // stopNapLayers 可能停掉 focus keeper（若曾有 woven），织境需再拉起
+        if (sc === 'woven') startMediaFocusKeeper(`AeroCabin · ${mode}`);
         const running = await resumeAudioContext(LOW_POWER ? 2000 : 1200);
         if (sc === 'woven') {
           try {
@@ -1298,7 +1372,6 @@ const AudioEngine = (() => {
             if (!running && ctx?.state === 'suspended') {
               await resumeAudioContext(1500);
             }
-            // 若仍无法跑 WebAudio，回退到轻量采样，避免「织境完全无声」
             if (ctx && ctx.state !== 'running' && LOW_POWER) {
               console.warn('[Audio] woven context not running, fallback to stream');
               stopWovenImmediate();
@@ -1312,6 +1385,7 @@ const AudioEngine = (() => {
             napPreset = 'stream';
           }
         } else {
+          stopMediaFocusKeeper();
           await napPlayer.start(sc, napVolume, { fadeIn });
         }
       })
