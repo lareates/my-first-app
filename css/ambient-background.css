@@ -1,0 +1,297 @@
+/* 白噪音氛围背景 — 低刺激、暗色、CSS-only 微动效 */
+
+.ambient-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #080a0e;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.55s ease;
+}
+
+.ambient-bg.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ambient-bg-slot {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  will-change: opacity;
+}
+
+.ambient-bg-slot.is-visible {
+  opacity: 1;
+}
+
+.ambient-bg-slot.is-hiding {
+  opacity: 0;
+}
+
+.ambient-bg-fallback,
+.ambient-bg-image,
+.ambient-bg-overlay,
+.ambient-bg-fx {
+  position: absolute;
+  inset: 0;
+}
+
+.ambient-bg-fallback {
+  background: #0a0c10;
+  z-index: 0;
+}
+
+.ambient-bg-image {
+  z-index: 1;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.ambient-bg-image.is-ready {
+  opacity: 1;
+}
+
+.ambient-bg-image.is-failed {
+  opacity: 0;
+}
+
+.ambient-bg-overlay {
+  z-index: 2;
+  background: linear-gradient(to bottom, rgba(5, 7, 12, 0.12), rgba(5, 7, 12, 0.28));
+  opacity: 0.28;
+}
+
+.ambient-bg-fx {
+  z-index: 3;
+  overflow: hidden;
+}
+
+/* —— rain —— */
+.amb-rain-drop {
+  position: absolute;
+  top: -8%;
+  width: 1px;
+  border-radius: 1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(180, 200, 220, 0),
+    rgba(180, 200, 220, 0.55),
+    rgba(180, 200, 220, 0)
+  );
+  transform: translate3d(0, 0, 0);
+  animation-name: amb-rain-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes amb-rain-fall {
+  from {
+    transform: translate3d(0, -5%, 0);
+  }
+  to {
+    transform: translate3d(var(--amb-drift, 0px), 118%, 0);
+  }
+}
+
+/* —— water_shift —— */
+.amb-water-sheen {
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  top: 48%;
+  height: 28%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(140, 190, 180, 0.05) 42%,
+    rgba(160, 210, 200, 0.09) 50%,
+    rgba(140, 190, 180, 0.04) 58%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  animation: amb-water-drift var(--amb-dur, 12s) ease-in-out infinite alternate;
+  opacity: 0.7;
+  will-change: background-position, opacity;
+}
+
+.amb-water-sheen--soft {
+  top: 58%;
+  height: 18%;
+  opacity: 0.45;
+  animation-duration: calc(var(--amb-dur, 12s) * 1.25);
+  animation-direction: alternate-reverse;
+}
+
+@keyframes amb-water-drift {
+  from {
+    background-position: 0% 50%;
+    opacity: 0.45;
+  }
+  to {
+    background-position: 100% 50%;
+    opacity: 0.75;
+  }
+}
+
+/* —— breathing_wave —— */
+.amb-tide-band {
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  top: 52%;
+  height: 36%;
+  background: linear-gradient(
+    to bottom,
+    rgba(70, 100, 150, 0) 0%,
+    rgba(70, 100, 150, 0.07) 35%,
+    rgba(40, 60, 100, 0.1) 55%,
+    rgba(20, 30, 50, 0) 100%
+  );
+  transform: translate3d(0, 0, 0);
+  animation: amb-tide-breathe var(--amb-dur, 11s) ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.amb-tide-glow {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 46%;
+  height: 3px;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(120, 150, 200, 0.18) 0%,
+    rgba(120, 150, 200, 0) 70%
+  );
+  animation: amb-tide-glow var(--amb-dur, 11s) ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes amb-tide-breathe {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(0, 6px, 0);
+    opacity: 0.85;
+  }
+}
+
+@keyframes amb-tide-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* —— soft_sway —— */
+.amb-sway-veil {
+  position: absolute;
+  top: 0;
+  right: 8%;
+  width: 38%;
+  height: 78%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(40, 70, 60, 0.08) 40%,
+    rgba(60, 50, 35, 0.06) 62%,
+    transparent 100%
+  );
+  transform-origin: top center;
+  animation: amb-soft-sway var(--amb-dur, 9s) ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes amb-soft-sway {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(3px, 0, 0) rotate(0.35deg);
+    opacity: 0.8;
+  }
+}
+
+/* —— night_glow (预留) —— */
+.amb-night-glow {
+  position: absolute;
+  inset: 18% 20% auto;
+  height: 40%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(90, 110, 160, 0.1) 0%,
+    transparent 70%
+  );
+  animation: amb-tide-glow var(--amb-dur, 10s) ease-in-out infinite;
+}
+
+/* 暂停：页面不可见 / 手动 pause */
+.ambient-bg.ambient-bg-paused .ambient-bg-fx *,
+.ambient-bg.ambient-bg-paused .amb-rain-drop,
+.ambient-bg.ambient-bg-paused .amb-water-sheen,
+.ambient-bg.ambient-bg-paused .amb-tide-band,
+.ambient-bg.ambient-bg-paused .amb-tide-glow,
+.ambient-bg.ambient-bg-paused .amb-sway-veil,
+.ambient-bg.ambient-bg-paused .amb-night-glow {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-bg-fx {
+    display: none !important;
+  }
+}
+
+/* 场景启用氛围图时：关掉模式 CSS 背景，沿用 nap-ambient-on 的文字布局 */
+#scene-nap.nap-has-ambient-bg .nap-mode-backgrounds {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#scene-nap.nap-has-ambient-bg .aura-bg-layer {
+  opacity: 0 !important;
+}
+
+#scene-nap.nap-has-ambient-bg .breath-ring-aura,
+#scene-nap.nap-has-ambient-bg .aura-art,
+#scene-nap.nap-has-ambient-bg .aura-visual-wrap {
+  display: none !important;
+}
+
+#scene-nap.nap-has-ambient-bg .aura-title,
+#scene-nap.nap-has-ambient-bg .aura-timer {
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.65);
+}
+
+#scene-nap.nap-has-ambient-bg .aura-header,
+#scene-nap.nap-has-ambient-bg .aura-horizon {
+  z-index: 50;
+}
+
+#scene-nap.nap-has-ambient-bg #ambient-bg-root {
+  z-index: 1;
+}
+
+#scene-nap.nap-has-ambient-bg.nap-ambient-on .aura-main,
+#scene-nap.nap-has-ambient-bg.nap-ambient-on .aura-meta {
+  z-index: 3;
+}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <!-- build: theater-single-20260928 -->
+  <!-- build: ambient-bg-20260929 -->
   <script>
   (function () {
     if (location.protocol === 'http:' && location.hostname === 'aerocabin.app') {
@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="styles.css?v=2">
   <link rel="stylesheet" href="css/aura.css?v=40">
   <link rel="stylesheet" href="css/nap-scenes.css?v=4">
+  <link rel="stylesheet" href="css/ambient-background.css?v=1">
   <link rel="stylesheet" href="css/porsche-gauges.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -205,6 +206,7 @@
     <div class="aura-bg-layer aura-bg-stardust active" data-bg="meditate"></div>
     <div class="aura-bg-layer aura-bg-drift" data-bg="sleep"></div>
     <div class="aura-bg-layer aura-bg-sunset" data-bg="breathe"></div>
+    <div id="ambient-bg-root" class="ambient-bg" aria-hidden="true"></div>
     <div class="nap-dawn-overlay" id="nap-dawn-overlay" aria-hidden="true"></div>
 
     <div class="nap-scene-bg" id="nap-scene-bg" aria-hidden="true">
@@ -716,8 +718,10 @@
   <script src="js/audio.js?v=car8"></script>
   <script src="js/bookmark-hint.js?v=3"></script>
   <script src="js/nap-ambient.js"></script>
-  <script src="js/nap-bg.js?v=3"></script>
-  <script src="js/nap.js?v=4"></script>
+  <script src="js/scene-background-config.js?v=1"></script>
+  <script src="js/ambient-background.js?v=1"></script>
+  <script src="js/nap-bg.js?v=4"></script>
+  <script src="js/nap.js?v=5"></script>
   <script src="js/camp.js"></script>
   <script src="js/focus-theme.js"></script>
   <script src="js/porsche-cluster.js"></script>
