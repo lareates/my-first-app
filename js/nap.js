@@ -67,26 +67,7 @@ function initNap(cleanupFns) {
   const typographyEl = screen.querySelector('.aura-typography');
 
   function isAmbientLayout() {
-    // 氛围图 / CSS 三模式：只轻移文字；自定义照片才做中心视差
     return screen.classList.contains('nap-ambient-on') && !screen.classList.contains('nap-has-scene-bg');
-  }
-
-  /** 声景 ↔ 氛围背景 / CSS 三模式仲裁（自定义照片优先） */
-  function syncAmbientScene() {
-    if (napBg?.isCustom()) {
-      if (typeof AmbientBackground !== 'undefined') AmbientBackground.stop();
-      screen.classList.remove('nap-has-ambient-bg');
-      return;
-    }
-    if (typeof Ambient !== 'undefined') Ambient.stop();
-    if (typeof AmbientBackground !== 'undefined' && AmbientBackground.setSoundscape(soundscape)) {
-      // 保留 nap-ambient-on 布局；模式 CSS 场景由 nap-has-ambient-bg 隐藏
-      NapAmbient.start(screen, mode);
-      return;
-    }
-    if (typeof AmbientBackground !== 'undefined') AmbientBackground.stop();
-    screen.classList.remove('nap-has-ambient-bg');
-    NapAmbient.start(screen, mode);
   }
 
   function applyParallax() {
@@ -136,8 +117,6 @@ function initNap(cleanupFns) {
     soundscape = sc;
     syncSoundscapeUi();
     renderMeta(NAP_MODES[mode]);
-    syncAmbientScene();
-    applyParallax();
     if (autoPlay) {
       if (!playing) startPlayback();
       else AudioEngine.startNapAudio(mode, parseInt(volInput.value, 10), soundscape);
@@ -158,10 +137,13 @@ function initNap(cleanupFns) {
     updateTimerDisplay();
     screen.style.setProperty('--breath-dur', `${cfg.breathDur}s`);
 
+    if (!napBg?.isCustom()) {
+      NapAmbient.setMode(m);
+    }
+
     soundscape = MODE_SOUND_MAP[m];
     syncSoundscapeUi();
     renderMeta(cfg);
-    syncAmbientScene();
 
     screen.querySelectorAll('#nap-modes .horizon-mode').forEach(btn => {
       const active = btn.dataset.napMode === m;
@@ -270,7 +252,6 @@ function initNap(cleanupFns) {
     if (lowPower) {
       screen.classList.add('nap-wake-lite');
       napBg?.pauseMotion?.();
-      if (typeof AmbientBackground !== 'undefined') AmbientBackground.pause();
     }
 
     screen.classList.add('nap-waking');
@@ -396,12 +377,7 @@ function initNap(cleanupFns) {
   screen.addEventListener('click', handleNapPanelTap, { signal: ac.signal });
   screen.addEventListener('touchend', handleNapPanelTap, { signal: ac.signal, passive: false });
 
-  const onVisualSync = () => syncAmbientScene();
-  document.addEventListener('aerocabin-nap-visual-sync', onVisualSync);
-  cleanupFns.push(() => document.removeEventListener('aerocabin-nap-visual-sync', onVisualSync));
-
   napBg = initNapBackground(screen, bgBtn, cleanupFns);
-  if (typeof AmbientBackground !== 'undefined') AmbientBackground.ensureRoot(screen);
   initIcons();
 
   // 壁纸面板打开时 z-index 更高，需在捕获阶段拦截声景/模式点击
@@ -463,7 +439,5 @@ function initNap(cleanupFns) {
     clearInterval(sessionInterval);
     AudioEngine.stopNapAudio();
     NapAmbient.stop();
-    if (typeof AmbientBackground !== 'undefined') AmbientBackground.stop();
-    screen.classList.remove('nap-has-ambient-bg');
   });
 }

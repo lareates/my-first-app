@@ -153,15 +153,10 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     const napMode = napScreen?.dataset.auraMode || 'meditate';
     if (isCustom()) {
       NapAmbient.stop();
-      if (typeof AmbientBackground !== 'undefined') AmbientBackground.stop();
-      napScreen?.classList.remove('nap-has-ambient-bg');
       Ambient.stop();
     } else {
       Ambient.stop();
-      // 由 nap.js 按当前声景决定 CSS 三模式 / 氛围图
-      document.dispatchEvent(new CustomEvent('aerocabin-nap-visual-sync', {
-        detail: { mode: napMode },
-      }));
+      NapAmbient.start(napScreen, napMode);
     }
   }
 
@@ -253,8 +248,7 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     closeSheet();
     sheet.remove();
     NapAmbient.stop();
-    if (typeof AmbientBackground !== 'undefined') AmbientBackground.stop();
-    screen.classList.remove('nap-has-scene-bg', 'nap-ambient-on', 'nap-has-ambient-bg');
+    screen.classList.remove('nap-has-scene-bg', 'nap-ambient-on');
   });
 
   return {
