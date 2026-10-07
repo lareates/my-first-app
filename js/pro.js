@@ -15,7 +15,7 @@ const ProGate = (() => {
     '<svg class="pro-key-icon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="#f5a524" d="M14.5 3a5.5 5.5 0 0 0-5.3 6.9L2 17.1V21h3.9l1.2-1.2 1.4 1.4 2.1-2.1-1.4-1.4L11 15.3A5.5 5.5 0 1 0 14.5 3zm0 3a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg>';
 
   /** 免费声景 */
-  const FREE_SOUNDSCAPES = new Set(['woven', 'rain', 'stream', 'waves', 'wind']);
+  const FREE_SOUNDSCAPES = new Set(['woven', 'wovenSleep', 'wovenBreath', 'rain', 'stream', 'waves', 'wind']);
   /** 免费场景背景 */
   const FREE_BACKGROUNDS = new Set(['default']);
   /** @deprecated 时长已全部免费，保留常量仅兼容旧调用 */

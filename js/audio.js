@@ -129,7 +129,18 @@ const AudioEngine = (() => {
     },
   };
 
-  const NAP_SOUNDSCAPES = ['woven', ...Object.keys(SAMPLE_PRESETS)];
+  /** 三条生成式织境，与画面模式无关，各自对应一条白噪音 */
+  const WOVEN_SOUND_MODE = {
+    woven: 'meditate',
+    wovenSleep: 'sleep',
+    wovenBreath: 'breathe',
+  };
+
+  function isWovenSound(sc) {
+    return Object.prototype.hasOwnProperty.call(WOVEN_SOUND_MODE, sc);
+  }
+
+  const NAP_SOUNDSCAPES = [...Object.keys(WOVEN_SOUND_MODE), ...Object.keys(SAMPLE_PRESETS)];
   const CAMP_SAMPLE_MAP = {
     stars: 'fireplace',
     terrain: 'wind',
@@ -1346,14 +1357,15 @@ const AudioEngine = (() => {
     napMode = mode;
     napVolume = volume / 100;
     // 车机：织境依赖 Oscillator，长淡出后再启动常已丢掉 AudioContext 运行态 → 无声
+    const wovenKind = isWovenSound(sc) ? WOVEN_SOUND_MODE[sc] : null;
     const fadeOut = quickSwitch
       ? MODE_SWITCH_FADE_OUT
-      : (LOW_POWER && sc === 'woven' ? 0.2 : FADE_OUT_SEC);
+      : (LOW_POWER && wovenKind ? 0.2 : FADE_OUT_SEC);
     const fadeIn = quickSwitch ? MODE_SWITCH_FADE_IN : FADE_IN_SEC;
 
     // 织境：在用户手势同步栈内先占住 HTMLAudio 焦点（否则几秒后被系统音乐抢走）
-    if (sc === 'woven') {
-      startMediaFocusKeeper(`AeroCabin · ${mode}`);
+    if (wovenKind) {
+      startMediaFocusKeeper(`AeroCabin · ${wovenKind}`);
     }
 
     // 尽量在调用栈前段触发 resume（仍可能在用户手势内）
@@ -1364,11 +1376,11 @@ const AudioEngine = (() => {
       .then(async () => {
         await stopNapLayers(fadeOut);
         // stopNapLayers 可能停掉 focus keeper（若曾有 woven），织境需再拉起
-        if (sc === 'woven') startMediaFocusKeeper(`AeroCabin · ${mode}`);
+        if (wovenKind) startMediaFocusKeeper(`AeroCabin · ${wovenKind}`);
         const running = await resumeAudioContext(LOW_POWER ? 2000 : 1200);
-        if (sc === 'woven') {
+        if (wovenKind) {
           try {
-            startWoven(mode, napVolume, fadeIn);
+            startWoven(wovenKind, napVolume, fadeIn);
             if (!running && ctx?.state === 'suspended') {
               await resumeAudioContext(1500);
             }
@@ -1415,7 +1427,7 @@ const AudioEngine = (() => {
 
   function setNapVolume(v) {
     napVolume = v / 100;
-    if (napPreset === 'woven') setWovenVolume(napVolume);
+    if (isWovenSound(napPreset)) setWovenVolume(napVolume);
     else napPlayer.setVolume(napVolume);
   }
 
