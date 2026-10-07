@@ -22,10 +22,11 @@ const NAP_SOUND_LABELS = new Proxy({}, {
   },
 });
 
-const MODE_SOUND_MAP = {
-  meditate: 'woven',
-  breathe: 'woven',
-  sleep: 'woven',
+const MODE_BACKGROUNDS = new Set(['meditate', 'sleep', 'breathe']);
+const PHOTO_BACKGROUNDS = new Set(['needles', 'cat']);
+const PHOTO_TITLES = {
+  needles: 'MISTED PINES',
+  cat: 'CANDLE WATCH',
 };
 
 function initNap(cleanupFns) {
@@ -46,11 +47,13 @@ function initNap(cleanupFns) {
   const bgBtn = document.getElementById('nap-bg-btn');
   const dawnOverlay = document.getElementById('nap-dawn-overlay');
   const soundscapeEl = document.getElementById('nap-soundscapes');
+  const backgroundEl = document.getElementById('nap-backgrounds');
 
   let napBg = null;
 
   let mode = 'meditate';
-  let soundscape = MODE_SOUND_MAP.meditate;
+  let background = 'meditate';
+  let soundscape = 'woven';
   let playing = false;
   let waking = false;
   const freeDefaultMin = (typeof ProGate !== 'undefined' && !ProGate.isPro()) ? 15 : 20;
@@ -127,38 +130,86 @@ function initNap(cleanupFns) {
     }
   }
 
-  function applyMode(m) {
+  function spawnRain(layer, count, opts) {
+    if (!layer || layer.childElementCount) return;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('span');
+      el.className = 'nap-photo-drop';
+      const left = opts.pad + (i / Math.max(1, count - 1)) * (100 - opts.pad * 2)
+        + (Math.random() * 2.2 - 1.1);
+      const len = opts.minLen + Math.random() * (opts.maxLen - opts.minLen);
+      const dur = opts.minDur + Math.random() * (opts.maxDur - opts.minDur);
+      el.style.left = `${left.toFixed(2)}%`;
+      el.style.height = `${len.toFixed(1)}px`;
+      el.style.animationDuration = `${dur.toFixed(2)}s`;
+      el.style.animationDelay = `${(-Math.random() * dur).toFixed(2)}s`;
+      el.style.setProperty('--drift', `${(Math.random() * opts.drift * 2 - opts.drift).toFixed(2)}px`);
+      frag.appendChild(el);
+    }
+    layer.appendChild(frag);
+  }
+
+  function spawnPhotoRain() {
+    spawnRain(screen.querySelector('[data-rain="needles"]'), 22, {
+      pad: 2, minLen: 18, maxLen: 42, minDur: 5.5, maxDur: 9.5, drift: 1.8,
+    });
+    screen.querySelectorAll('.nap-photo-pane[data-pane]').forEach((pane) => {
+      spawnRain(pane, pane.classList.contains('pane-br') ? 5 : 7, {
+        pad: 6, minLen: 18, maxLen: 40, minDur: 3.8, maxDur: 6.8, drift: 1.6,
+      });
+    });
+  }
+
+  function syncBackgroundUi() {
+    backgroundEl?.querySelectorAll('.nap-bg-chip').forEach(btn => {
+      const active = btn.dataset.napBg === background;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  function sessionTitle() {
+    if (PHOTO_BACKGROUNDS.has(background)) return PHOTO_TITLES[background];
+    return NAP_MODES[mode]?.title || '';
+  }
+
+  function applyVisualMode(m) {
     if (!NAP_MODES[m]) return;
     mode = m;
     const cfg = NAP_MODES[m];
     screen.dataset.auraMode = m;
-    title.textContent = cfg.title;
-    sessionSec = sessionLengthSec;
-    updateTimerDisplay();
+    if (!waking) title.textContent = sessionTitle();
     screen.style.setProperty('--breath-dur', `${cfg.breathDur}s`);
-
-    if (!napBg?.isCustom()) {
-      NapAmbient.setMode(m);
-    }
-
-    soundscape = MODE_SOUND_MAP[m];
-    syncSoundscapeUi();
     renderMeta(cfg);
-
-    screen.querySelectorAll('#nap-modes .horizon-mode').forEach(btn => {
-      const active = btn.dataset.napMode === m;
-      btn.classList.toggle('active', active);
-      btn.classList.toggle('mode-secondary', active && m === 'sleep');
-    });
-
-    if (playing) {
-      if (typeof AudioEngine.switchNapMode === 'function') {
-        AudioEngine.switchNapMode(m, parseInt(volInput.value, 10), soundscape);
-      } else {
-        AudioEngine.startNapAudio(m, parseInt(volInput.value, 10), soundscape);
-      }
+    if (!isPhotoBackground()) {
+      NapAmbient.setMode(m);
+      if (!playing) setBreathRest();
     }
     applyParallax();
+  }
+
+  function applyBackground(id) {
+    if (!MODE_BACKGROUNDS.has(id) && !PHOTO_BACKGROUNDS.has(id)) return;
+    background = id;
+    syncBackgroundUi();
+    if (napBg?.isCustom?.()) napBg.apply('default');
+
+    if (PHOTO_BACKGROUNDS.has(id)) {
+      screen.classList.add('nap-has-photo-bg');
+      screen.dataset.photoBg = id;
+      if (!waking) title.textContent = PHOTO_TITLES[id];
+      hintEl.style.opacity = '0';
+      applyParallax();
+      return;
+    }
+
+    screen.classList.remove('nap-has-photo-bg');
+    delete screen.dataset.photoBg;
+    if (!screen.classList.contains('nap-ambient-on')) {
+      NapAmbient.start(screen, id);
+    }
+    applyVisualMode(id);
   }
 
   function updateTimerDisplay() {
@@ -185,32 +236,35 @@ function initNap(cleanupFns) {
     art.style.transform = `translate3d(0,0,0) scale(${artScale})`;
   }
 
+  function isPhotoBackground() {
+    return screen.classList.contains('nap-has-photo-bg');
+  }
+
   function setBreathRest() {
     setBreathVisual(0.5);
-    hintEl.style.opacity = mode === 'breathe' ? '0.35' : '0';
+    hintEl.style.opacity = mode === 'breathe' && !isPhotoBackground() ? '0.35' : '0';
   }
 
   function updateBreathMotion(now) {
     if (!playing) return;
-    const cfg = NAP_MODES[mode];
-    const cycle = cfg.breathDur * 1000;
-    const elapsed = (now - breathStart) % cycle;
-    const half = cycle / 2;
-    let phase;
-    let inhale;
-    if (elapsed < half) {
-      phase = elapsed / half;
-      inhale = true;
-    } else {
-      phase = 1 - (elapsed - half) / half;
-      inhale = false;
-    }
-    const wave = 0.5 - 0.5 * Math.cos((elapsed / cycle) * Math.PI * 2);
-    AudioEngine.setBreathPhase(phase);
+    const visualDur = (NAP_MODES[mode]?.breathDur || 12) * 1000;
+    const audioDur = (soundscape === 'wovenBreath' ? 8 : 12) * 1000;
+    const elapsedVisual = (now - breathStart) % visualDur;
+    const elapsedAudio = (now - breathStart) % audioDur;
+    const audioHalf = audioDur / 2;
+    const audioPhase = elapsedAudio < audioHalf
+      ? elapsedAudio / audioHalf
+      : 1 - (elapsedAudio - audioHalf) / audioHalf;
+    const wave = 0.5 - 0.5 * Math.cos((elapsedVisual / visualDur) * Math.PI * 2);
+    AudioEngine.setBreathPhase(audioPhase);
     setBreathVisual(wave);
-    if (mode === 'breathe') {
+    if (mode === 'breathe' && !isPhotoBackground()) {
+      const inhale = elapsedVisual < visualDur / 2;
+      const visualPhase = inhale
+        ? elapsedVisual / (visualDur / 2)
+        : 1 - (elapsedVisual - visualDur / 2) / (visualDur / 2);
       hintEl.textContent = inhale ? I18n.t('breathIn') : I18n.t('breathOut');
-      hintEl.style.opacity = String(0.5 + phase * 0.5);
+      hintEl.style.opacity = String(0.5 + visualPhase * 0.5);
     }
   }
 
@@ -273,10 +327,9 @@ function initNap(cleanupFns) {
     waking = false;
     screen.classList.remove('nap-waking', 'nap-wake-lite');
     dawnOverlay?.classList.remove('active');
-    const cfg = NAP_MODES[mode];
-    title.textContent = cfg.title;
-    hintEl.style.opacity = mode === 'breathe' ? '0.35' : '0';
-    if (mode === 'breathe') hintEl.textContent = I18n.t('breathIn');
+    title.textContent = sessionTitle();
+    hintEl.style.opacity = mode === 'breathe' && !isPhotoBackground() ? '0.35' : '0';
+    if (mode === 'breathe' && !isPhotoBackground()) hintEl.textContent = I18n.t('breathIn');
   }
 
   function togglePlay() {
@@ -348,9 +401,9 @@ function initNap(cleanupFns) {
     }
     if (e.type === 'touchend') panelTouchHandled = true;
 
-    const modeBtn = e.target.closest('button[data-nap-mode]');
+    const bgBtnTap = e.target.closest('button[data-nap-bg]');
     const soundBtn = e.target.closest('button[data-soundscape]');
-    if (!modeBtn && !soundBtn) return;
+    if (!bgBtnTap && !soundBtn) return;
 
     const now = Date.now();
     if (now - lastPanelTap < 400) return;
@@ -360,8 +413,8 @@ function initNap(cleanupFns) {
     e.stopPropagation();
     closeNapSheets();
 
-    if (modeBtn) {
-      applyMode(modeBtn.dataset.napMode);
+    if (bgBtnTap) {
+      applyBackground(bgBtnTap.dataset.napBg);
       return;
     }
 
@@ -377,25 +430,24 @@ function initNap(cleanupFns) {
   screen.addEventListener('click', handleNapPanelTap, { signal: ac.signal });
   screen.addEventListener('touchend', handleNapPanelTap, { signal: ac.signal, passive: false });
 
-  napBg = initNapBackground(screen, bgBtn, cleanupFns);
   initIcons();
 
   // 壁纸面板打开时 z-index 更高，需在捕获阶段拦截声景/模式点击
   document.addEventListener('click', (e) => {
     if (!napBg?.isSheetOpen?.()) return;
     if (!e.target.closest('#scene-nap')) return;
-    const modeBtn = e.target.closest('button[data-nap-mode]');
+    const bgBtnTap = e.target.closest('button[data-nap-bg]');
     const soundBtn = e.target.closest('button[data-soundscape]');
-    if (!modeBtn && !soundBtn) return;
+    if (!bgBtnTap && !soundBtn) return;
     handleNapPanelTap(e);
   }, { capture: true, signal: ac.signal });
 
   document.addEventListener('touchend', (e) => {
     if (!napBg?.isSheetOpen?.()) return;
     if (!e.target.closest('#scene-nap')) return;
-    const modeBtn = e.target.closest('button[data-nap-mode]');
+    const bgBtnTap = e.target.closest('button[data-nap-bg]');
     const soundBtn = e.target.closest('button[data-soundscape]');
-    if (!modeBtn && !soundBtn) return;
+    if (!bgBtnTap && !soundBtn) return;
     handleNapPanelTap(e);
   }, { capture: true, signal: ac.signal, passive: false });
 
@@ -416,7 +468,10 @@ function initNap(cleanupFns) {
   };
   document.addEventListener('mousemove', onMove, { signal: ac.signal });
 
-  applyMode('meditate');
+  spawnPhotoRain();
+  napBg = initNapBackground(screen, bgBtn, cleanupFns);
+  applyBackground('meditate');
+  syncSoundscapeUi();
   setBreathRest();
   applyParallax();
 
@@ -426,8 +481,9 @@ function initNap(cleanupFns) {
     if (typeof ProGate !== 'undefined') {
       ProGate.syncSoundscapeLocks();
       I18n.applyDom(document.getElementById('nap-soundscapes'));
+      I18n.applyDom(backgroundEl);
     }
-    if (!playing && !waking && mode === 'breathe') {
+    if (!playing && !waking && mode === 'breathe' && !isPhotoBackground()) {
       hintEl.textContent = I18n.t('breathIn');
     }
   });

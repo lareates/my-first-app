@@ -817,69 +817,74 @@ body.timer-sheet-open { overflow: hidden; }
 }
 
 #scene-nap {
-  --nap-panel-max: clamp(12.5rem, 32vh, 16rem);
-  --nap-sound-scroll-max: clamp(6.25rem, 17vh, 9rem);
+  --nap-panel-max: clamp(13.5rem, 36vh, 16.5rem);
+  --nap-sound-scroll-max: 3.6rem;
 }
 
 #scene-nap .horizon-bar {
-  background: rgba(6,6,8,0.72);
-  border-color: rgba(255,255,255,0.06);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 0;
+  padding: 0;
 }
 #scene-nap .nap-horizon {
-  border-radius: 1.5rem;
   flex-direction: column;
-  align-items: stretch;
-  gap: 0.75rem;
-  padding-bottom: 0.35rem;
-  max-height: var(--nap-panel-max);
-  overflow: hidden;
-}
-.nap-horizon-top {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  flex-wrap: nowrap;
-  gap: 0.75rem;
-  flex-shrink: 0;
+  gap: 0.7rem;
+  padding: 0;
+  max-height: none;
+  overflow: visible;
+  background: transparent;
 }
+.nap-bg-scroll,
 .nap-soundscapes-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  max-height: var(--nap-sound-scroll-max);
-  overflow-x: hidden;
-  overflow-y: auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  padding-right: 0.15rem;
-  margin-right: -0.1rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(210,187,255,0.25) transparent;
-  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 14px), transparent 100%);
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: none;
 }
-.nap-soundscapes-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-.nap-soundscapes-scroll::-webkit-scrollbar-thumb {
-  background: rgba(210,187,255,0.22);
-  border-radius: 999px;
+.nap-bg-scroll { width: 100%; overflow: visible; }
+.nap-bg-scroll::-webkit-scrollbar,
+.nap-soundscapes-scroll::-webkit-scrollbar { display: none; }
+.nap-soundscapes-scroll {
+  flex: 0 0 auto;
+  width: 100%;
+  max-height: none;
 }
 #scene-nap .horizon-controls {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
+  width: min(24rem, 92vw);
+  margin-inline: auto;
   flex-shrink: 0;
 }
+#scene-nap .horizon-volume {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 16rem;
+  margin: 0;
+}
+.nap-backgrounds,
 .nap-soundscapes {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  padding-left: 0.15rem;
-  padding-bottom: 0.35rem;
-  align-content: flex-start;
+  justify-content: center;
+  gap: 0.55rem;
+  flex-wrap: nowrap;
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-bottom: 0.1rem;
 }
+.nap-bg-chip,
 .nap-sound-chip {
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 999px;
@@ -897,11 +902,27 @@ body.timer-sheet-open { overflow: hidden; }
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
 }
-.nap-sound-chip:hover {
+#scene-nap .nap-bg-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  min-height: 3rem;
+  padding: 0;
+  border-radius: 50%;
+}
+#scene-nap .nap-bg-chip .ico {
+  width: 22px;
+  height: 22px;
+}
+.nap-sound-chip:hover,
+.nap-bg-chip:hover {
   color: rgba(226,226,226,0.85);
   border-color: rgba(210,187,255,0.2);
 }
-.nap-sound-chip.active {
+.nap-sound-chip.active,
+.nap-bg-chip.active {
   color: rgba(226,226,226,0.95);
   border-color: rgba(210,187,255,0.38);
   background: rgba(54,38,206,0.16);
@@ -2497,25 +2518,33 @@ body.focus-paywall-open { overflow: hidden; }
     align-items: stretch;
   }
   #scene-nap .horizon-controls {
-    width: auto;
-    justify-content: flex-end;
-    flex-shrink: 0;
+    width: min(24rem, 92vw);
+    justify-content: center;
   }
   #scene-nap .horizon-volume {
     flex: 1;
     flex-basis: auto;
     order: 0;
     min-width: 0;
+    max-width: none;
+  }
+  #scene-nap .nap-bg-chip {
+    width: 2.75rem;
+    height: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0;
   }
   .nap-soundscapes-scroll {
     max-height: var(--nap-sound-scroll-max);
   }
-  .nap-soundscapes {
-    flex-wrap: wrap;
+  .nap-soundscapes,
+  .nap-backgrounds {
+    flex-wrap: nowrap;
     gap: 0.5rem;
-    padding-bottom: 0.35rem;
+    padding-bottom: 0.15rem;
   }
-  .nap-sound-chip {
+  .nap-sound-chip,
+  .nap-bg-chip {
     font-size: 13px;
     min-height: 2.65rem;
     padding: 0.6rem 1rem;
@@ -2530,6 +2559,7 @@ body.focus-paywall-open { overflow: hidden; }
 /* ─── 车机可读性：关键控件最小 12px ─── */
 .aura-screen :is(
   .horizon-mode,
+  .nap-bg-chip,
   .nap-sound-chip,
   .cell-label,
   .tab,
@@ -2549,10 +2579,12 @@ body.focus-paywall-open { overflow: hidden; }
 
 /* 车机横屏：声景按钮再放大一档，方便手指点按 */
 @media (orientation: landscape) and (min-width: 900px) {
-  .nap-soundscapes {
+  .nap-soundscapes,
+  .nap-backgrounds {
     gap: 0.6rem;
   }
-  .nap-sound-chip {
+  .nap-sound-chip,
+  .nap-bg-chip {
     font-size: 15px;
     min-height: 3.1rem;
     padding: 0.75rem 1.35rem;

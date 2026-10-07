@@ -36,9 +36,14 @@ const I18n = (() => {
       napModeMeditate: 'Meditate',
       napModeSleep: 'Sleep',
       napModeBreathe: 'Breathe',
+      napBgNeedles: 'Pine Mist Rain',
+      napBgCat: 'Cat at the Window',
+      napBackgrounds: 'Backgrounds',
 
       soundscape: {
-        woven: 'Ambient Woven',
+        woven: 'Violet Haze',
+        wovenSleep: 'Night Hum',
+        wovenBreath: 'Breath Tide',
         rain: 'Rain on Roof',
         stream: 'Stream',
         waves: 'Coastal Waves',
@@ -179,9 +184,14 @@ const I18n = (() => {
       napModeMeditate: '冥想',
       napModeSleep: '睡眠',
       napModeBreathe: '呼吸',
+      napBgNeedles: '松针雾雨',
+      napBgCat: '窗台黑猫',
+      napBackgrounds: '背景',
 
       soundscape: {
-        woven: '氛围织境',
+        woven: '紫雾轻弦',
+        wovenSleep: '深宵低鸣',
+        wovenBreath: '气息潮涌',
         rain: '春雨车顶',
         stream: '溪水潺潺',
         waves: '潮汐海滨',
@@ -322,9 +332,14 @@ const I18n = (() => {
       napModeMeditate: 'Méditer',
       napModeSleep: 'Sommeil',
       napModeBreathe: 'Respirer',
+      napBgNeedles: 'Pluie sur les pins',
+      napBgCat: 'Chat à la fenêtre',
+      napBackgrounds: 'Fonds',
 
       soundscape: {
-        woven: 'Ambiance tissée',
+        woven: 'Brume violette',
+        wovenSleep: 'Bourdon nocturne',
+        wovenBreath: 'Marée d’air',
         rain: 'Pluie sur le toit',
         stream: 'Ruisseau',
         waves: 'Vagues côtières',
