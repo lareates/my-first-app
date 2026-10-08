@@ -46,7 +46,7 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     btn.className = 'bg-sheet-card';
     btn.dataset.sceneBg = bg.id;
     const thumbInner = bg.image
-      ? `<img class="bg-sheet-thumb" src="${bg.image}" alt="">`
+      ? `<img class="bg-sheet-thumb" alt="" decoding="async" data-src="${bg.image}">`
       : '<span class="bg-sheet-thumb bg-sheet-thumb-default"></span>';
     btn.innerHTML = `
       ${thumbInner}
@@ -160,9 +160,17 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     }
   }
 
+  function ensureScenePhoto(id) {
+    const img = stack.querySelector(`[data-scene-bg="${id}"] .nap-bg-photo`);
+    const src = img?.dataset.src;
+    if (!img || !src || img.getAttribute('src')) return;
+    img.src = src;
+  }
+
   function apply(id, persist = true) {
     if (!NAP_SCENE_BACKGROUNDS.some(b => b.id === id)) id = 'default';
     currentId = id;
+    if (id !== 'default') ensureScenePhoto(id);
     if (persist) localStorage.setItem(STORAGE_KEY, id);
     syncActiveCards();
     detachMotion();
@@ -176,8 +184,15 @@ function initNapBackground(screen, triggerEl, cleanupFns) {
     document.body.classList.remove('timer-sheet-open', 'bg-sheet-open');
   }
 
+  function ensureSheetThumbs() {
+    grid.querySelectorAll('img[data-src]').forEach((img) => {
+      if (!img.getAttribute('src')) img.src = img.dataset.src;
+    });
+  }
+
   function openSheet() {
     if (isRecentTimerTap()) return;
+    ensureSheetThumbs();
     closeAllSheets();
     applySheetCopy();
     syncActiveCards();

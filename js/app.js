@@ -13,6 +13,15 @@ initIcons();
 // 不在首次任意触摸时唤醒 AudioContext，避免车机误切回蓝牙/USB 音乐
 // 音频解锁由播放键、调音台、全屏按钮等显式交互负责
 
+function ensureOrbitron() {
+  if (document.querySelector('link[data-orbitron]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap';
+  link.setAttribute('data-orbitron', '');
+  document.head.appendChild(link);
+}
+
 function showScene(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
   cleanupFns.forEach(fn => fn());
@@ -46,6 +55,7 @@ function showScene(name) {
     return;
   }
   if (name === 'focus') {
+    ensureOrbitron();
     AuraHeader.onSceneEnter(screens.focus);
     initFocus(cleanupFns);
     return;
@@ -56,6 +66,9 @@ document.addEventListener('aerocabin-enter-scene', (e) => {
   const scene = e.detail?.scene;
   if (scene) showScene(scene);
 });
+
+window.__scenesBound = true;
+const pendingScene = window.__takePendingScene?.() || null;
 
 document.querySelectorAll('.scene-card[data-scene]').forEach((btn) => {
   const scene = btn.dataset.scene;
@@ -73,6 +86,10 @@ document.querySelectorAll('.scene-card[data-scene]').forEach((btn) => {
     }
     last = now;
     if (e.type === 'touchend') touchHandled = true;
+    if (window.__earlyScene === scene && Date.now() - (window.__earlySceneAt || 0) < 1200) {
+      window.__earlyScene = null;
+      return;
+    }
     if (scene === 'nap') trackEvent('scene_nap');
     else if (scene === 'camp') trackEvent('scene_camping');
     else if (scene === 'focus') trackEvent('scene_charging');
@@ -87,4 +104,4 @@ document.querySelectorAll('[data-back]').forEach(btn => {
   btn.addEventListener('touchend', back);
 });
 
-showScene('home');
+showScene(pendingScene || 'home');

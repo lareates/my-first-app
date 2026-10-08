@@ -150,7 +150,25 @@ function initNap(cleanupFns) {
     layer.appendChild(frag);
   }
 
-  function spawnPhotoRain() {
+  function photoLite() {
+    let lite = document.documentElement.classList.contains('car-lite');
+    if (!lite && typeof isCarBrowser === 'function' && isCarBrowser()) lite = true;
+    if (!lite && typeof AudioEngine !== 'undefined' && AudioEngine.LOW_POWER) lite = true;
+    if (lite) document.documentElement.classList.add('car-lite');
+    return lite;
+  }
+
+  function ensurePhotoImage(id) {
+    const img = screen.querySelector(`.nap-photo-scene[data-photo-bg="${id}"] .nap-photo-img`);
+    const src = img?.dataset.photoSrc;
+    if (!img || !src || img.dataset.loaded === '1') return;
+    img.dataset.loaded = '1';
+    img.style.backgroundImage = `url("${src}")`;
+  }
+
+  function ensurePhotoRain() {
+    if (photoLite() || screen.dataset.photoRain === '1') return;
+    screen.dataset.photoRain = '1';
     spawnRain(screen.querySelector('[data-rain="needles"]'), 22, {
       pad: 2, minLen: 18, maxLen: 42, minDur: 5.5, maxDur: 9.5, drift: 1.8,
     });
@@ -195,7 +213,14 @@ function initNap(cleanupFns) {
     syncBackgroundUi();
     if (napBg?.isCustom?.()) napBg.apply('default');
 
+    screen.querySelectorAll('.nap-photo-scene').forEach((el) => {
+      el.classList.toggle('is-on', el.dataset.photoBg === id);
+    });
+
     if (PHOTO_BACKGROUNDS.has(id)) {
+      photoLite();
+      ensurePhotoImage(id);
+      ensurePhotoRain();
       screen.classList.add('nap-has-photo-bg');
       screen.dataset.photoBg = id;
       if (!waking) title.textContent = PHOTO_TITLES[id];
@@ -468,7 +493,6 @@ function initNap(cleanupFns) {
   };
   document.addEventListener('mousemove', onMove, { signal: ac.signal });
 
-  spawnPhotoRain();
   napBg = initNapBackground(screen, bgBtn, cleanupFns);
   applyBackground('meditate');
   syncSoundscapeUi();

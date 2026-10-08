@@ -2,9 +2,21 @@
 <html lang="en" class="dark heritage-ui-off pro-locked-ui-hidden">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
   <!-- build: theater-single-20260928 -->
+  <script>
+  (function () {
+    var ua = navigator.userAgent || '';
+    var lite = /Tesla|QtCarBrowser|QtWebEngine/i.test(ua);
+    var cores = navigator.hardwareConcurrency || 8;
+    var mem = navigator.deviceMemory || 8;
+    try {
+      var flag = localStorage.getItem('aetheris-low-power');
+      if (flag === '1') lite = true;
+      if (flag === '0') lite = false;
+    } catch (e) {}
+    if (lite || cores <= 4 || mem <= 4) document.documentElement.classList.add('car-lite');
+  })();
+  </script>
   <script>
   (function () {
     if (location.protocol === 'http:' && location.hostname === 'aerocabin.app') {
@@ -31,11 +43,8 @@
   <meta name="twitter:image" content="https://aerocabin.app/assets/backgrounds/garden.png">
   <link rel="stylesheet" href="styles.css?v=2">
   <link rel="stylesheet" href="css/aura.css?v=42">
-  <link rel="stylesheet" href="css/nap-scenes.css?v=6">
+  <link rel="stylesheet" href="css/nap-scenes.css?v=7">
   <link rel="stylesheet" href="css/porsche-gauges.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
   <script defer src="https://cloud.umami.is/script.js" data-website-id="d08be28e-7d15-4e88-91e4-0f8fa352b8a3"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js" defer></script>
 </head>
@@ -93,6 +102,103 @@
       </nav>
       <p class="home-footer-tagline" data-i18n="homeFooterTagline">Made for Tesla owners.</p>
     </footer>
+    <script>
+    (function () {
+      var COPY = {
+        zh: {
+          theater: '沉浸模式',
+          homeTagline: '为 Tesla 打造的车内放松空间',
+          homeScenesTitle: '你现在想做什么？',
+          sceneNap: '我想休息',
+          sceneNapDesc: '小睡 · 放松 · 呼吸',
+          sceneCamp: '我在露营',
+          sceneCampDesc: '星空 · 地形 · 天象',
+          sceneFocus: '我在充电',
+          sceneFocusDesc: '倒计时 · 白噪音 · ASMR',
+          footerPrivacy: '隐私政策',
+          footerTerms: '服务条款',
+          footerContact: '联系',
+          homeFooterTagline: '为 Tesla 车主而设计',
+          appTitle: 'AeroCabin'
+        },
+        fr: {
+          theater: 'Immersif',
+          homeTagline: 'Un espace de détente pensé pour votre Tesla.',
+          homeScenesTitle: 'De quoi avez-vous besoin maintenant ?',
+          sceneNap: 'Je veux me reposer',
+          sceneNapDesc: 'Sieste · Détente · Respiration',
+          sceneCamp: 'Je suis en camping',
+          sceneCampDesc: 'Étoiles · Paysages · Ciel',
+          sceneFocus: 'Je suis en charge',
+          sceneFocusDesc: 'Minuterie · Ambiances · ASMR',
+          footerPrivacy: 'Confidentialité',
+          footerTerms: 'Conditions',
+          footerContact: 'Contact',
+          homeFooterTagline: 'Conçu pour les propriétaires Tesla.',
+          appTitle: 'AeroCabin'
+        }
+      };
+      function detectLocale() {
+        var stored = null;
+        try { stored = localStorage.getItem('aetheris-lang'); } catch (e) {}
+        var q = new URLSearchParams(location.search).get('lang');
+        var nav = (navigator.language || 'en').toLowerCase();
+        if (stored === 'zh' || stored === 'en' || stored === 'fr') return stored;
+        if (q === 'zh' || q === 'en' || q === 'fr') return q;
+        if (nav.indexOf('zh') === 0) return 'zh';
+        if (nav.indexOf('fr') === 0) return 'fr';
+        return 'en';
+      }
+      function applyHome(loc) {
+        var pack = COPY[loc];
+        document.documentElement.lang = loc === 'zh' ? 'zh-CN' : loc === 'fr' ? 'fr-FR' : 'en';
+        if (pack) {
+          document.querySelectorAll('#home [data-i18n]').forEach(function (el) {
+            var key = el.getAttribute('data-i18n');
+            if (pack[key]) el.textContent = pack[key];
+          });
+          if (pack.appTitle) document.title = pack.appTitle;
+        }
+        document.querySelectorAll('#home .lang-btn').forEach(function (btn) {
+          var on = btn.getAttribute('data-lang') === loc;
+          btn.classList.toggle('active', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      }
+      var pending = null;
+      applyHome(detectLocale());
+      document.querySelectorAll('#home .lang-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          if (window.__scenesBound) return;
+          e.preventDefault();
+          var next = btn.getAttribute('data-lang');
+          try { localStorage.setItem('aetheris-lang', next); } catch (err) {}
+          applyHome(next);
+        });
+      });
+      document.querySelectorAll('.scene-card[data-scene]').forEach(function (btn) {
+        function go(e) {
+          if (window.__scenesBound) return;
+          var scene = btn.getAttribute('data-scene');
+          if (!scene) return;
+          e.preventDefault();
+          pending = scene;
+          window.__earlyScene = scene;
+          window.__earlySceneAt = Date.now();
+          document.querySelectorAll('.screen').forEach(function (el) { el.classList.remove('active'); });
+          var target = document.getElementById('scene-' + scene);
+          if (target) target.classList.add('active');
+        }
+        btn.addEventListener('touchend', go);
+        btn.addEventListener('click', go);
+      });
+      window.__takePendingScene = function () {
+        var scene = pending;
+        pending = null;
+        return scene;
+      };
+    })();
+    </script>
 
   </section>
 
@@ -209,17 +315,17 @@
 
     <div class="nap-scene-bg" id="nap-scene-bg" aria-hidden="true">
       <div class="nap-scene-bg-layer" data-scene-bg="garden">
-        <img class="nap-bg-photo" src="assets/backgrounds/garden.png" alt="" decoding="async">
+        <img class="nap-bg-photo" alt="" decoding="async" data-src="assets/backgrounds/garden.png">
         <canvas class="nap-bg-particles"></canvas>
         <div class="nap-bg-veil"></div>
       </div>
       <div class="nap-scene-bg-layer" data-scene-bg="coastal">
-        <img class="nap-bg-photo" src="assets/backgrounds/coastal.png" alt="" decoding="async">
+        <img class="nap-bg-photo" alt="" decoding="async" data-src="assets/backgrounds/coastal.png">
         <canvas class="nap-bg-particles"></canvas>
         <div class="nap-bg-veil"></div>
       </div>
       <div class="nap-scene-bg-layer" data-scene-bg="dream">
-        <img class="nap-bg-photo" src="assets/backgrounds/dream.png" alt="" decoding="async">
+        <img class="nap-bg-photo" alt="" decoding="async" data-src="assets/backgrounds/dream.png">
         <canvas class="nap-bg-particles"></canvas>
         <div class="nap-bg-veil"></div>
       </div>
@@ -228,7 +334,7 @@
     <div class="nap-photo-bg" id="nap-photo-bg" aria-hidden="true">
       <div class="nap-photo-scene" data-photo-bg="needles">
         <div class="nap-photo-frame">
-          <div class="nap-photo-img" style="background-image:url('assets/ambient/candidates/spring-rain-opt-a-needles.jpg')"></div>
+          <div class="nap-photo-img" data-photo-src="assets/ambient/needles.jpg?v=2"></div>
           <div class="nap-photo-veil"></div>
           <div class="nap-photo-rain" data-rain="needles"></div>
           <div class="nap-photo-mist"></div>
@@ -237,7 +343,7 @@
       </div>
       <div class="nap-photo-scene" data-photo-bg="cat">
         <div class="nap-photo-frame">
-          <div class="nap-photo-img" style="background-image:url('assets/ambient/candidates/spring-rain-opt-c-cat-window.jpg')"></div>
+          <div class="nap-photo-img" data-photo-src="assets/ambient/cat.jpg?v=2"></div>
           <div class="nap-photo-veil"></div>
           <div class="nap-photo-glass">
             <div class="nap-photo-pane pane-tl" data-pane></div>
@@ -734,26 +840,26 @@
   </div>
   <iframe name="kit-submit-frame" id="kit-submit-frame" class="kit-submit-frame" tabindex="-1" aria-hidden="true" title=""></iframe>
 
-  <script src="js/utils.js"></script>
-  <script src="js/analytics.js?v=2"></script>
-  <script src="js/i18n.js?v=41"></script>
-  <script src="js/motion.js"></script>
-  <script src="js/icons.js?v=2"></script>
-  <script src="js/ambient.js"></script>
-  <script src="js/pro.js?v=41"></script>
-  <script src="js/timer-picker.js?v=5"></script>
-  <script src="js/tesla.js?v=40"></script>
-  <script src="js/art.js"></script>
-  <script src="js/audio.js?v=car9"></script>
-  <script src="js/bookmark-hint.js?v=3"></script>
-  <script src="js/nap-ambient.js"></script>
-  <script src="js/nap-bg.js?v=3"></script>
-  <script src="js/nap.js?v=6"></script>
-  <script src="js/camp.js"></script>
-  <script src="js/focus-theme.js"></script>
-  <script src="js/porsche-cluster.js"></script>
-  <script src="js/focus.js?v=2"></script>
-  <script src="js/aura-header.js?v=3"></script>
-  <script src="js/app.js?v=40"></script>
+  <script defer src="js/utils.js"></script>
+  <script defer src="js/analytics.js?v=2"></script>
+  <script defer src="js/i18n.js?v=41"></script>
+  <script defer src="js/motion.js"></script>
+  <script defer src="js/icons.js?v=2"></script>
+  <script defer src="js/ambient.js"></script>
+  <script defer src="js/pro.js?v=41"></script>
+  <script defer src="js/timer-picker.js?v=5"></script>
+  <script defer src="js/tesla.js?v=40"></script>
+  <script defer src="js/art.js"></script>
+  <script defer src="js/audio.js?v=car9"></script>
+  <script defer src="js/bookmark-hint.js?v=3"></script>
+  <script defer src="js/nap-ambient.js"></script>
+  <script defer src="js/nap-bg.js?v=5"></script>
+  <script defer src="js/nap.js?v=7"></script>
+  <script defer src="js/camp.js"></script>
+  <script defer src="js/focus-theme.js"></script>
+  <script defer src="js/porsche-cluster.js"></script>
+  <script defer src="js/focus.js?v=2"></script>
+  <script defer src="js/aura-header.js?v=3"></script>
+  <script defer src="js/app.js?v=41"></script>
 </body>
 </html>
