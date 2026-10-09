@@ -31,10 +31,11 @@ const THEATER_BOUNCE_HOSTS = new Set([
   }
 })();
 
-async function unlockAndPlay(playFn) {
+function unlockAndPlay(playFn) {
   try {
-    const ctx = await AudioEngine.resume();
-    if (ctx && ctx.state === 'suspended') await ctx.resume();
+    if (typeof AudioEngine !== 'undefined' && AudioEngine.primeFromGesture) {
+      AudioEngine.primeFromGesture();
+    }
     playFn();
   } catch (e) {
     console.error('Audio unlock failed', e);
